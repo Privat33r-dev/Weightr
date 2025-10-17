@@ -92,10 +92,20 @@
     <string name="enter_goal_weight">Enter your new goal weight</string>
     <string name="error_invalid_goal">Invalid goal weight</string>
     <string name="goal_saved">Goal weight saved</string>
-    <string name="current_goal">%.1f</string><string name="placeholder_weight">Loading weight...</string>
+    <string name="current_goal">%.1f</string>
+    <string name="weight_format">%.1f lbs</string>
+    <string name="to_goal">%d%% to goal</string>
+    <string name="placeholder_weight">Log your weight</string>
     <string name="placeholder_goal">Set your goal</string>
     <string name="placeholder_progress">Calculating progress…</string>
     <string name="placeholder_graph">Weight Trend Graph\n(Coming Soon)</string>
-
-
+    <string name="content_desc_goal_dialog">Dialog to enter or edit your goal weight</string>
+    <string name="content_desc_goal_input">Edit text field to input your goal weight in pounds, supports decimal numbers</string>
+    <string name="content_desc_save_button">Button to save the entered goal weight</string>
+    <string name="content_desc_cancel_button">Button to cancel and close the goal weight dialog</string>
+    <string name="set_weight_first">Set your current weight first</string>
+    <string name="weight_helper">Use your scale’s value</string>
+    <string name="unit_lbs">lbs</string>
+    <string name="cd_pick_date">Select date</string>
+    <string name="history_fragment_label">Weight history</string>
 </resources>

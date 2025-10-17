@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "123d1a87e241e80e787c53bda594b1cd",
+    "identityHash": "ae515c638be2f30006f2c4bb03a97327",
     "entities": [
       {
         "tableName": "users",
@@ -47,7 +47,7 @@
       },
       {
         "tableName": "goal_weight",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `user_id` INTEGER NOT NULL, `weight` REAL NOT NULL, FOREIGN KEY(`user_id`) REFERENCES `users`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `user_id` INTEGER NOT NULL, `current_goal` REAL NOT NULL, `goal_start` REAL NOT NULL, FOREIGN KEY(`user_id`) REFERENCES `users`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -62,8 +62,14 @@
             "notNull": true
           },
           {
-            "fieldPath": "weight",
-            "columnName": "weight",
+            "fieldPath": "currentGoal",
+            "columnName": "current_goal",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "goalStart",
+            "columnName": "goal_start",
             "affinity": "REAL",
             "notNull": true
           }
@@ -172,7 +178,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '123d1a87e241e80e787c53bda594b1cd')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ae515c638be2f30006f2c4bb03a97327')"
     ]
   }
 }

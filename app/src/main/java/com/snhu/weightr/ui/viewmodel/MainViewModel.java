@@ -16,6 +16,7 @@ public class MainViewModel extends ViewModel {
 
     private final MutableLiveData<Double> currentWeight = new MutableLiveData<>();
     private final MutableLiveData<Double> goalWeight = new MutableLiveData<>();
+    private final MutableLiveData<Double> goalStartWeight = new MutableLiveData<>();
     private final MutableLiveData<Long> userId = new MutableLiveData<>(-2L);
     private final MutableLiveData<String> userName = new MutableLiveData<>("");
 
@@ -58,8 +59,10 @@ public class MainViewModel extends ViewModel {
         });
 
         goalWeightRepository.getGoalWeight(userId.getValue(), goal -> {
-            Double weight = (goal != null) ? goal.weight : null;
-            goalWeight.postValue(weight);
+            Double goalWeight = (goal != null) ? goal.currentGoal : null;
+            Double goalStartWeight = (goal != null) ? goal.goalStart : null;
+            this.goalWeight.postValue(goalWeight);
+            this.goalStartWeight.postValue(goalStartWeight);
         });
     }
 
@@ -67,13 +70,16 @@ public class MainViewModel extends ViewModel {
      * Sets the goal weight for the user.
      */
     public void setGoalWeight(double goal) {
-        if (goalWeightRepository == null || userId.getValue() == null) {
+        Double goalStart = currentWeight.getValue();
+        long uid = userId.getValue();
+        if (goalWeightRepository == null || uid == -1 ) {
             // TODO: graceful exception handling
             return;
         }
 
-        goalWeightRepository.setGoalWeight(userId.getValue(), goal, () -> {
-            goalWeight.postValue(goal); // Update UI after persistence
+        goalWeightRepository.setGoal(userId.getValue(), goal, goalStart, () -> {
+            goalWeight.postValue(goal);
+            goalStartWeight.postValue(goalStart);
         });
     }
 
@@ -83,6 +89,10 @@ public class MainViewModel extends ViewModel {
 
     public LiveData<Double> getGoalWeight() {
         return goalWeight;
+    }
+
+    public LiveData<Double> getGoalStartWeight() {
+        return goalStartWeight;
     }
 
     public LiveData<Long> getUserId() {

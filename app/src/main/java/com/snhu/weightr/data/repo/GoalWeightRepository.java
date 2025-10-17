@@ -21,19 +21,16 @@ public final class GoalWeightRepository {
         this.goalWeightDao = goalWeightDao;
     }
 
-    /**
-     * Sets or updates the goal weight for a user.
-     *
-     * @param userId ID of the user
-     * @param weight Goal weight value
-     * @param callback Optional callback for completion (default: no-op)
-     */
-    public void setGoalWeight(@NonNull Long userId, double weight, @Nullable Runnable callback) {
+    public void setGoal(@NonNull Long userId, double currentGoal, double goalStart, @Nullable Runnable callback) {
         DbExecutor.get().execute(() -> {
-            GoalWeightEntity entry = new GoalWeightEntity();
-            entry.userId = userId;
-            entry.weight = weight;
-            long result = goalWeightDao.upsert(entry); // Replaces existing entry for userId
+            GoalWeightEntity existing = goalWeightDao.getForUser(userId);
+            if (existing == null) {
+                existing = new GoalWeightEntity();
+                existing.userId = userId;
+            }
+            existing.currentGoal = currentGoal;
+            existing.goalStart = goalStart;
+            goalWeightDao.upsert(existing);
             if (callback != null) callback.run();
         });
     }

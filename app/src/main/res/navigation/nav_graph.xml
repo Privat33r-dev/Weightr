@@ -5,7 +5,6 @@
     android:id="@+id/nav_graph"
     app:startDestination="@id/MainFragment">
 
-
     <fragment
         android:id="@+id/MainFragment"
         android:name="com.snhu.weightr.MainFragment"
@@ -14,16 +13,35 @@
 
         <action
             android:id="@+id/action_MainFragment_to_HistoryFragment"
-            app:destination="@id/HistoryFragment" />
+            app:destination="@id/HistoryFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+
     </fragment>
     <fragment
         android:id="@+id/HistoryFragment"
         android:name="com.snhu.weightr.HistoryFragment"
-        android:label="@string/second_fragment_label"
+        android:label="@string/history_fragment_label"
         tools:layout="@layout/fragment_history">
 
         <action
             android:id="@+id/action_HistoryFragment_to_MainFragment"
-            app:destination="@id/MainFragment" />
+            app:destination="@id/MainFragment"
+            app:enterAnim="@anim/slide_in_left"
+            app:exitAnim="@anim/slide_out_right"
+            app:popEnterAnim="@anim/slide_in_right"
+            app:popExitAnim="@anim/slide_out_left" />
     </fragment>
+    <activity
+        android:id="@+id/loginActivity"
+        android:name="com.snhu.weightr.ui.login.LoginActivity"
+        android:label="activity_login"
+        tools:layout="@layout/activity_login" />
+    <activity
+        android:id="@+id/mainActivity"
+        android:name="com.snhu.weightr.MainActivity"
+        android:label="activity_main"
+        tools:layout="@layout/activity_main" />
 </navigation>

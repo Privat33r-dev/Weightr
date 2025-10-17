@@ -100,16 +100,16 @@
         <!-- Edit Goal Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/edit_goal_button"
+            style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
+            android:nextFocusDown="@+id/fab"
             android:text="@string/edit_goal"
             app:cornerRadius="8dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/progress_card"
-        style="@style/Widget.Material3.Button.OutlinedButton"
-        android:nextFocusDown="@+id/fab" />
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/progress_card" />
 
         <!-- Temporary Graph Placeholder -->
         <com.google.android.material.card.MaterialCardView

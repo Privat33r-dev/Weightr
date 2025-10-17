@@ -43,6 +43,7 @@
         android:nextFocusRight="@+id/toolbar"
         android:nextFocusUp="@+id/edit_goal_button"
         android:text="@string/log_weight"
+        android:textAppearance="@style/TextAppearance.AppCompat.Widget.Button"
         app:icon="@android:drawable/ic_input_add"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
