@@ -12,15 +12,16 @@ import androidx.fragment.app.DialogFragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.snhu.weightr.R;
-import com.snhu.weightr.databinding.FragmentDialogGoalEntryBinding;
+import com.snhu.weightr.databinding.DialogGoalEntryBinding;
 import com.snhu.weightr.ui.viewmodel.MainViewModel;
+import com.snhu.weightr.util.Utils;
 
 /**
  * DialogFragment for setting or updating the goal weight.
  */
 public class DialogGoalEntry extends DialogFragment {
 
-    private FragmentDialogGoalEntryBinding binding;
+    private DialogGoalEntryBinding binding;
     private MainViewModel viewModel;
 
     public DialogGoalEntry() {
@@ -30,7 +31,7 @@ public class DialogGoalEntry extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
-        binding = FragmentDialogGoalEntryBinding.inflate(getLayoutInflater());
+        binding = DialogGoalEntryBinding.inflate(getLayoutInflater());
         viewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
@@ -55,8 +56,7 @@ public class DialogGoalEntry extends DialogFragment {
         }
 
         binding.saveGoalButton.setOnClickListener(v -> {
-            assert binding.goalWeightInput.getText() != null;
-            String goalStr = binding.goalWeightInput.getText().toString().trim();
+            String goalStr = Utils.safeText(binding.goalWeightInput.getText());
             if (TextUtils.isEmpty(goalStr) || !isValidWeight(goalStr)) {
                 binding.goalWeightLayout.setError(getString(R.string.error_invalid_goal));
                 return;

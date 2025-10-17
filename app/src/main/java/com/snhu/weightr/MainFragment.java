@@ -60,7 +60,7 @@ public final class MainFragment extends Fragment {
         binding.editGoalButton.setOnClickListener(v -> {
             // We need user's current weight to set it as a starting point
             // So we can calculate how the user progresses
-            if(viewModel.getCurrentWeight().getValue() == null) {
+            if (viewModel.getCurrentWeight().getValue() == null) {
                 Toast.makeText(requireContext(), R.string.set_weight_first, Toast.LENGTH_SHORT).show();
                 return;
             }

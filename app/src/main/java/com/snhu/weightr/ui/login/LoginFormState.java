@@ -8,22 +8,28 @@ import androidx.annotation.StringRes;
  */
 public final class LoginFormState {
 
-    @Nullable @StringRes
+    @Nullable
+    @StringRes
     private final Integer usernameError;
 
-    @Nullable @StringRes
+    @Nullable
+    @StringRes
     private final Integer passwordError;
 
     private final boolean isDataValid;
 
-    /** Invalid state with specific input errors. */
+    /**
+     * Invalid state with specific input errors.
+     */
     public LoginFormState(@Nullable Integer usernameError, @Nullable Integer passwordError) {
         this.usernameError = usernameError;
         this.passwordError = passwordError;
         this.isDataValid = (usernameError == null && passwordError == null);
     }
 
-    /** Valid state. */
+    /**
+     * Valid state.
+     */
     public LoginFormState(boolean isDataValid) {
         this.usernameError = null;
         this.passwordError = null;

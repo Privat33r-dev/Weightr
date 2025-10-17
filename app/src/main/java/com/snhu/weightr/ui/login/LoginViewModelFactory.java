@@ -2,9 +2,11 @@
 package com.snhu.weightr.ui.login;
 
 import android.content.Context;
+
 import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
+
 import com.snhu.weightr.data.db.WeightrDb;
 import com.snhu.weightr.data.repo.UserRepository;
 

@@ -19,6 +19,7 @@ import com.snhu.weightr.data.db.dao.DailyWeightDao;
 import com.snhu.weightr.data.db.entity.DailyWeightEntity;
 import com.snhu.weightr.data.repo.DailyWeightRepository;
 import com.snhu.weightr.data.session.SessionStore;
+import com.snhu.weightr.ui.dialogs.DialogWeightEntry;
 
 import java.util.Locale;
 import java.util.Objects;
@@ -27,7 +28,7 @@ public final class HistoryFragment extends Fragment {
 
     private RecyclerView rv;
     private HistoryAdapter adapter;
-    private DailyWeightRepository repo;
+    private DailyWeightRepository dailyWeightRepository;
     private Long userId;
 
     @Nullable
@@ -44,11 +45,11 @@ public final class HistoryFragment extends Fragment {
 
         rv = v.findViewById(R.id.rv_history);
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
-        adapter = new HistoryAdapter(this::onDelete);
+        adapter = new HistoryAdapter(this::onDelete, this::onEdit);
         rv.setAdapter(adapter);
 
         DailyWeightDao dao = WeightrDb.get(requireContext()).dailyWeightDao();
-        repo = new DailyWeightRepository(dao);
+        dailyWeightRepository = new DailyWeightRepository(dao);
 
         long uid = SessionStore.get(requireContext()).userId();
         userId = (uid > 0) ? uid : null;
@@ -58,20 +59,26 @@ public final class HistoryFragment extends Fragment {
             return;
         }
 
+        getParentFragmentManager().setFragmentResultListener(
+                "weight_saved", getViewLifecycleOwner(), (key, bundle) -> loadData()
+        );
+
         loadData();
     }
 
     private void loadData() {
-        repo.listWeightsForUser(userId, list ->
+        dailyWeightRepository.listWeightsForUser(userId, list ->
                 requireActivity().runOnUiThread(() -> adapter.submitList(list))
         );
     }
 
     private void onDelete(@NonNull DailyWeightEntity item) {
-        repo.deleteWeight(item.id, () -> requireActivity().runOnUiThread(() -> {
-            // TODO: something
-            loadData();
-        }));
+        dailyWeightRepository.deleteWeight(item.id, () -> requireActivity().runOnUiThread(this::loadData));
+    }
+
+    private void onEdit(@NonNull DailyWeightEntity item) {
+        DialogWeightEntry dialog = DialogWeightEntry.newEdit(item.id, item.userId, item.weight, item.date);
+        dialog.show(getParentFragmentManager(), "WeightEntryDialog");
     }
 
     private static final class HistoryAdapter
@@ -81,11 +88,17 @@ public final class HistoryFragment extends Fragment {
             void onDelete(DailyWeightEntity item);
         }
 
-        private final OnDeleteClick onDelete;
+        interface OnEditClick {
+            void onEdit(DailyWeightEntity item);
+        }
 
-        HistoryAdapter(OnDeleteClick onDelete) {
+        private final OnDeleteClick onDelete;
+        private final OnEditClick onEdit;
+
+        HistoryAdapter(OnDeleteClick onDelete, OnEditClick onEdit) {
             super(DIFF);
             this.onDelete = onDelete;
+            this.onEdit = onEdit;
         }
 
         @NonNull
@@ -99,7 +112,7 @@ public final class HistoryFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull VH h, int position) {
             DailyWeightEntity item = getItem(position);
-            h.bind(item, onDelete);
+            h.bind(item, onDelete, onEdit);
         }
 
         static final DiffUtil.ItemCallback<DailyWeightEntity> DIFF =
@@ -107,20 +120,15 @@ public final class HistoryFragment extends Fragment {
                     @Override
                     public boolean areItemsTheSame(@NonNull DailyWeightEntity a,
                                                    @NonNull DailyWeightEntity b) {
-                        // stable ID if you have one
-                        return a.id == b.id;
+                        return Objects.equals(a.id, b.id);
                     }
 
                     @Override
                     public boolean areContentsTheSame(@NonNull DailyWeightEntity a,
                                                       @NonNull DailyWeightEntity b) {
                         return a.weight == b.weight
-                                && safeEq(a.date, b.date)
-                                && safeEq(a.userId, b.userId);
-                    }
-
-                    private boolean safeEq(Object x, Object y) {
-                        return Objects.equals(x, y);
+                                && Objects.equals(a.date, b.date)
+                                && Objects.equals(a.userId, b.userId);
                     }
                 };
 
@@ -128,20 +136,30 @@ public final class HistoryFragment extends Fragment {
             private final android.widget.TextView dateTv;
             private final android.widget.TextView weightTv;
             private final android.widget.ImageButton deleteBtn;
+            @Nullable
+            private final android.widget.ImageButton editBtn;
 
             VH(@NonNull View itemView) {
                 super(itemView);
                 dateTv = itemView.findViewById(R.id.date_tv);
                 weightTv = itemView.findViewById(R.id.weight_tv);
+                editBtn = itemView.findViewById(R.id.edit_btn);
                 deleteBtn = itemView.findViewById(R.id.delete_btn);
+//                editBtn = (eb instanceof android.widget.ImageButton) ? (android.widget.ImageButton) eb : null;
             }
 
-            void bind(@NonNull DailyWeightEntity item, @NonNull OnDeleteClick onDelete) {
+            void bind(@NonNull DailyWeightEntity item,
+                      @NonNull OnDeleteClick onDelete,
+                      @NonNull OnEditClick onEdit) {
                 dateTv.setText(item.date);
-                // show with unit; adapt if you use kg in strings
-                weightTv.setText(String.format(Locale.US, "%.1f kg", item.weight));
+                weightTv.setText(String.format(Locale.US, "%.1f lbs", item.weight));
                 deleteBtn.setOnClickListener(v -> onDelete.onDelete(item));
+                if (editBtn != null) editBtn.setOnClickListener(v -> onEdit.onEdit(item));
+                itemView.setOnClickListener(v -> onEdit.onEdit(item));
             }
         }
     }
 }
+
+
+

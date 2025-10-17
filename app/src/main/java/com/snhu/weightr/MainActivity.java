@@ -3,7 +3,6 @@ package com.snhu.weightr;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
-import android.view.MenuItem;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -110,7 +109,7 @@ public final class MainActivity extends AppCompatActivity {
     }
 
 
-    private void showNewWeightDialog(){
+    private void showNewWeightDialog() {
         DialogWeightEntry dialog = new DialogWeightEntry();
         dialog.show(getSupportFragmentManager(), "WeightEntryDialog");
     }

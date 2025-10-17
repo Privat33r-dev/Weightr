@@ -1,6 +1,7 @@
 package com.snhu.weightr.data.repo;
 
 import androidx.annotation.NonNull;
+
 import com.snhu.weightr.data.db.dao.UserDao;
 import com.snhu.weightr.data.db.entity.UserEntity;
 import com.snhu.weightr.data.repo.util.DbExecutor;

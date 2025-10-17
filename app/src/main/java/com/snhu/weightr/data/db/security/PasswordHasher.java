@@ -1,8 +1,10 @@
 package com.snhu.weightr.data.db.security;
 
 import android.util.Base64;
+
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
@@ -10,11 +12,11 @@ import javax.crypto.spec.PBEKeySpec;
  * Password hashing using PBKDF2.
  * <p>
  * Priority:
- *   1) PBKDF2WithHmacSHA3-512 (JDK 9+/some Android providers)
- *   2) PBKDF2WithHmacSHA512
+ * 1) PBKDF2WithHmacSHA3-512 (JDK 9+/some Android providers)
+ * 2) PBKDF2WithHmacSHA512
  * </p>
  * Output format (PHC-style):
- *   $pbkdf2-<alg>$v=<iterations>$salt=<base64>$hash=<base64>
+ * $pbkdf2-<alg>$v=<iterations>$salt=<base64>$hash=<base64>
  */
 public final class PasswordHasher {
 
@@ -29,7 +31,9 @@ public final class PasswordHasher {
 
     private static final String RESOLVED_ALGO = resolveAlgorithm();
 
-    /** Hash a password; returns standardized PHC-style string. */
+    /**
+     * Hash a password; returns standardized PHC-style string.
+     */
     public static String hash(final char[] password) {
         final byte[] salt = new byte[SALT_LEN_BYTES];
         new SecureRandom().nextBytes(salt);
@@ -41,7 +45,9 @@ public final class PasswordHasher {
                 "$hash=" + Base64.encodeToString(dk, Base64.NO_WRAP);
     }
 
-    /** Verify password against stored PBKDF2 hash. */
+    /**
+     * Verify password against stored PBKDF2 hash.
+     */
     public static boolean verify(final char[] password, final String stored) {
         if (stored == null || !stored.startsWith("$pbkdf2-")) return false;
         try {
@@ -76,7 +82,8 @@ public final class PasswordHasher {
             try {
                 SecretKeyFactory.getInstance(alg);
                 return alg;
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
         throw new IllegalStateException(
                 "No supported PBKDF2 algorithm available (tried SHA3-512, SHA-512).");
@@ -95,8 +102,13 @@ public final class PasswordHasher {
     }
 
     private static int safeParseInt(String s, int def) {
-        try { return Integer.parseInt(s); } catch (Exception e) { return def; }
+        try {
+            return Integer.parseInt(s);
+        } catch (Exception e) {
+            return def;
+        }
     }
 
-    private PasswordHasher() {}
+    private PasswordHasher() {
+    }
 }

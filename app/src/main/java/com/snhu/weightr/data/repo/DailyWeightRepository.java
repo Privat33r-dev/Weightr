@@ -22,32 +22,39 @@ public final class DailyWeightRepository {
         this.weightDao = weightDao;
     }
 
+    public interface ErrorCallback {
+        void onError(Exception e);
+    }
+
     /**
      * Logs a new weight entry for a user.
      *
-     * @param userId ID of the user
-     * @param weight Weight value to log
-     * @param date Date of the entry in ISO 8601 format
-     * @param callback Optional callback for completion (default: no-op)
-     * @throws IllegalStateException if entry already exists for the date
+     * @param userId    ID of the user
+     * @param weight    Weight value to log
+     * @param date      Date of the entry in ISO 8601 format
+     * @param onSuccess Optional callback on success (default: no-op)
+     * @param onError   Optional callback on error (default: no-op)
      */
-    public void logWeight(@NonNull Long userId, double weight, @NonNull String date, @Nullable Runnable callback) {
+    public void logWeight(@NonNull Long userId,
+                          double weight,
+                          @NonNull String date,
+                          @Nullable Runnable onSuccess,
+                          @Nullable ErrorCallback onError) {
         DbExecutor.get().execute(() -> {
-            DailyWeightEntity existing = weightDao.listForUser(userId).stream()
-                    .filter(e -> e.date.equals(date))
-                    .findFirst().orElse(null);
-            if (existing != null) {
-//                Toast.makeText(requireContext(), R.string.already_logged, Toast.LENGTH_SHORT).show();
-                return;
-//                throw new IllegalStateException("Weight already logged for this date");
+            try {
+                DailyWeightEntity e = new DailyWeightEntity();
+                e.userId = userId;
+                e.weight = weight;
+                e.date = date;
+                weightDao.insert(e); // will insert or update; no exception
+                if (onSuccess != null) onSuccess.run();
+            } catch (android.database.sqlite.SQLiteConstraintException err) {
+                if (onError != null) onError.onError(
+                        new IllegalArgumentException("Entry with this date already exists", err)
+                );
+            } catch (Exception ex) {
+                if (onError != null) onError.onError(ex);
             }
-
-            DailyWeightEntity entry = new DailyWeightEntity();
-            entry.userId = userId;
-            entry.weight = weight;
-            entry.date = date;
-            weightDao.upsert(entry);
-            if (callback != null) callback.run();
         });
     }
 
@@ -68,15 +75,17 @@ public final class DailyWeightRepository {
     /**
      * Updates the weight value for a specific entry.
      *
-     * @param id ID of the weight entry to update
+     * @param id        ID of the weight entry to update
      * @param newWeight Updated weight value
-     * @param callback Optional callback for completion (default: no-op)
+     * @param newDate Updated date value
+     * @param callback  Optional callback for completion (default: no-op)
      */
-    public void updateWeight(@NonNull Long id, double newWeight, @Nullable Runnable callback) {
+    public void updateWeightById(@NonNull Long id, double newWeight, String newDate, @Nullable Runnable callback) {
         DbExecutor.get().execute(() -> {
             DailyWeightEntity entry = weightDao.getById(id);
             if (entry != null) {
                 entry.weight = newWeight;
+                entry.date = newDate;
                 weightDao.upsert(entry);
                 if (callback != null) callback.run();
             }
@@ -86,7 +95,7 @@ public final class DailyWeightRepository {
     /**
      * Deletes a specific weight entry.
      *
-     * @param id ID of the weight entry to delete
+     * @param id       ID of the weight entry to delete
      * @param callback Optional callback for completion (default: no-op)
      */
     public void deleteWeight(@NonNull Long id, @Nullable Runnable callback) {

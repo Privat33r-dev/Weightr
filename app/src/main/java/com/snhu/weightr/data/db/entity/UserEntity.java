@@ -6,7 +6,9 @@ import androidx.room.Entity;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
-/** User record (stores hashed password only). */
+/**
+ * User record (stores hashed password only).
+ */
 @Entity(
         tableName = "users",
         indices = {@Index(value = "username", unique = true)}
@@ -18,7 +20,9 @@ public final class UserEntity {
     @NonNull
     public String username = ""; // init to satisfy @NonNull analysis
 
-    /** Format: iterations:saltB64:dkB64:alg */
+    /**
+     * Format: iterations:saltB64:dkB64:alg
+     */
     @NonNull
     @ColumnInfo(name = "password")
     public String passwordHash = "";

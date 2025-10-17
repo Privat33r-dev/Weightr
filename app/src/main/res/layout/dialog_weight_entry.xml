@@ -4,24 +4,25 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingHorizontal="24dp"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
     android:paddingTop="20dp"
     android:paddingBottom="8dp"
+    android:background="?attr/colorSurface"
     tools:context=".ui.dialogs.DialogWeightEntry">
 
+    <!-- Weight input -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/weight_layout"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:hint="@string/enter_weight"
-        android:labelFor="@id/weight_input"
         app:boxBackgroundMode="outline"
-        app:helperText="@string/weight_helper"
-        app:suffixText="@string/unit_lbs"
-        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:suffixText="@string/unit_lbs">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/weight_input"
@@ -29,41 +30,51 @@
             android:layout_height="wrap_content"
             android:inputType="numberDecimal"
             android:imeOptions="actionDone"
+            android:importantForAutofill="no"
             android:selectAllOnFocus="true"
-            android:importantForAutofill="no" />
+            android:textColor="?attr/colorOnSurface"
+            tools:text="150.7" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <com.google.android.material.textview.MaterialTextView
+    <!-- Date label (clickable) -->
+    <TextView
         android:id="@+id/date_text"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="@string/current_date"
+        android:padding="12dp"
+        android:gravity="center"
         android:textAppearance="?attr/textAppearanceBodyMedium"
-        android:importantForAccessibility="yes"
-        android:contentDescription="@string/current_date"
+        android:textColor="?attr/colorPrimary"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:focusable="true"
+        android:contentDescription="@string/cd_pick_date"
         app:layout_constraintTop_toBottomOf="@id/weight_layout"
-        app:layout_constraintStart_toStartOf="@id/weight_layout" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:text="Today • 2025-10-17" />
 
-
+    <!-- Cancel -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/cancel_button"
         style="@style/Widget.Material3.Button.TextButton.Dialog"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="20dp"
         android:text="@string/cancel"
         app:layout_constraintTop_toBottomOf="@id/date_text"
-        app:layout_constraintEnd_toStartOf="@+id/save_button"
-        app:layout_constraintHorizontal_chainStyle="packed" />
+        app:layout_constraintStart_toStartOf="parent" />
 
+    <!-- Save -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/save_button"
-        style="@style/Widget.Material3.Button.TextButton.Dialog"
+        style="@style/Widget.Material3.Button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="20dp"
         android:text="@string/save"
         app:layout_constraintTop_toBottomOf="@id/date_text"
         app:layout_constraintEnd_toEndOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

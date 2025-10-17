@@ -72,7 +72,7 @@ public class MainViewModel extends ViewModel {
     public void setGoalWeight(double goal) {
         Double goalStart = currentWeight.getValue();
         long uid = userId.getValue();
-        if (goalWeightRepository == null || uid == -1 ) {
+        if (goalWeightRepository == null || uid == -1) {
             // TODO: graceful exception handling
             return;
         }

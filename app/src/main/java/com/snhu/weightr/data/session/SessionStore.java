@@ -13,10 +13,9 @@ public final class SessionStore {
     }
 
     public static SessionStore get(Context ctx) {
-        if (INSTANCE == null) {
-            synchronized (SessionStore.class) {
-                if (INSTANCE == null) INSTANCE = new SessionStore(ctx.getApplicationContext());
-            }
+        if (INSTANCE != null) return INSTANCE;
+        synchronized (SessionStore.class) {
+            if (INSTANCE == null) INSTANCE = new SessionStore(ctx.getApplicationContext());
         }
         return INSTANCE;
     }
@@ -29,8 +28,15 @@ public final class SessionStore {
         prefs.edit().putLong("uid", -1L).putString("uname", null).apply();
     }
 
-    public long userId() { return prefs.getLong("uid", -1L); }
-    public String username() { return prefs.getString("uname", null); }
+    public long userId() {
+        return prefs.getLong("uid", -1L);
+    }
 
-    public void clear() { prefs.edit().clear().apply(); }
+    public String username() {
+        return prefs.getString("uname", null);
+    }
+
+    public void clear() {
+        prefs.edit().clear().apply();
+    }
 }

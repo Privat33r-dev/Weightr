@@ -6,6 +6,7 @@ import androidx.room.Entity;
 import androidx.room.ForeignKey;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
+
 @Entity(
         tableName = "daily_weights",
         foreignKeys = @ForeignKey(
@@ -16,7 +17,7 @@ import androidx.room.PrimaryKey;
         ),
         indices = {
                 @Index("user_id"),
-                @Index(value = {"user_id","date"}, unique = true)
+                @Index(value = {"user_id", "date"}, unique = true)
         }
 )
 public final class DailyWeightEntity {
@@ -28,7 +29,9 @@ public final class DailyWeightEntity {
 
     public double weight;
 
-    /** ISO-8601 calendar date (YYYY-MM-DD). */
+    /**
+     * ISO-8601 calendar date (YYYY-MM-DD).
+     */
     @NonNull
     public String date = "";
 }

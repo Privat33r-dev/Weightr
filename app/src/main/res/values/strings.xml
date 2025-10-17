@@ -108,4 +108,7 @@
     <string name="unit_lbs">lbs</string>
     <string name="cd_pick_date">Select date</string>
     <string name="history_fragment_label">Weight history</string>
+    <string name="edit_entry">Button to edit this entry</string>
+    <string name="generic_error">Error: %s</string>
+    <string name="weight_edited">Weight has been edited</string>
 </resources>

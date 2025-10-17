@@ -24,7 +24,7 @@ import com.snhu.weightr.R;
 import com.snhu.weightr.data.model.LoggedInUser;
 import com.snhu.weightr.data.session.SessionStore;
 import com.snhu.weightr.databinding.ActivityLoginBinding;
-import com.snhu.weightr.util.utils;
+import com.snhu.weightr.util.Utils;
 
 public final class LoginActivity extends AppCompatActivity {
 
@@ -71,8 +71,8 @@ public final class LoginActivity extends AppCompatActivity {
 
             if (mode == Mode.REGISTER) {
                 boolean matches = TextUtils.equals(
-                        utils.safeText(binding.password.getText()),
-                        utils.safeText(binding.passwordRepeat.getText()));
+                        Utils.safeText(binding.password.getText()),
+                        Utils.safeText(binding.passwordRepeat.getText()));
                 passwordRepeatLayout.setError(matches ? null : getString(R.string.error_password_mismatch));
             } else {
                 passwordRepeatLayout.setError(null);
@@ -105,8 +105,8 @@ public final class LoginActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) {
                 loginViewModel.loginDataChanged(
-                        utils.safeText(binding.username.getText()),
-                        utils.safeText(binding.password.getText()));
+                        Utils.safeText(binding.username.getText()),
+                        Utils.safeText(binding.password.getText()));
             }
         };
         binding.username.addTextChangedListener(watcher);
@@ -160,23 +160,23 @@ public final class LoginActivity extends AppCompatActivity {
 
     private void submit() {
         if (mode == Mode.REGISTER) {
-            final String pw = utils.safeText(binding.password.getText());
-            final String pw2 = utils.safeText(binding.passwordRepeat.getText());
+            final String pw = Utils.safeText(binding.password.getText());
+            final String pw2 = Utils.safeText(binding.passwordRepeat.getText());
             if (!TextUtils.equals(pw, pw2)) {
                 binding.passwordRepeatLayout.setError(getString(R.string.error_password_mismatch));
                 return;
             }
             setLoading(true);
             loginViewModel.register(
-                    utils.safeText(binding.username.getText()),
+                    Utils.safeText(binding.username.getText()),
                     pw);
             return;
         }
 
         setLoading(true);
         loginViewModel.login(
-                utils.safeText(binding.username.getText()),
-                utils.safeText(binding.password.getText()));
+                Utils.safeText(binding.username.getText()),
+                Utils.safeText(binding.password.getText()));
     }
 
     private void setLoading(boolean loading) {
