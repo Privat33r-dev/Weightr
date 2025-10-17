@@ -54,12 +54,16 @@ public final class DailyWeightRepository {
     /**
      * Retrieves all weight entries for a user, sorted by date descending.
      *
-     * @param userId ID of the user
-     * @return List of DailyWeightEntity, including ids
+     * @param userId   ID of the user
+     * @param callback Callback invoked on completion with the list (may be empty)
      */
-    public List<DailyWeightEntity> listWeightsForUser(@NonNull Long userId) {
-        return weightDao.listForUser(userId);
+    public void listWeightsForUser(@NonNull Long userId, @NonNull Consumer<List<DailyWeightEntity>> callback) {
+        DbExecutor.get().execute(() -> {
+            List<DailyWeightEntity> list = weightDao.listForUser(userId);
+            callback.accept(list);
+        });
     }
+
 
     /**
      * Updates the weight value for a specific entry.

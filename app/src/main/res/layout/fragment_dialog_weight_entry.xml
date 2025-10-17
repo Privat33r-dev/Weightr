@@ -43,8 +43,7 @@
         android:importantForAccessibility="yes"
         android:contentDescription="@string/current_date"
         app:layout_constraintTop_toBottomOf="@id/weight_layout"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintStart_toStartOf="@id/weight_layout" />
 
 
     <com.google.android.material.button.MaterialButton
