@@ -14,8 +14,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.snhu.weightr.R;
 import com.snhu.weightr.data.db.WeightrDb;
-import com.snhu.weightr.data.model.LoggedInUser;
-import com.snhu.weightr.data.repo.WeightRepository;
+import com.snhu.weightr.data.repo.DailyWeightRepository;
 import com.snhu.weightr.data.session.SessionStore;
 import com.snhu.weightr.databinding.FragmentDialogWeightEntryBinding;
 import com.snhu.weightr.ui.viewmodel.MainViewModel;
@@ -31,7 +30,7 @@ public class DialogWeightEntry extends DialogFragment {
 
     private FragmentDialogWeightEntryBinding binding;
     private MainViewModel viewModel;
-    private WeightRepository weightRepository;
+    private DailyWeightRepository dailyWeightRepository;
 
     public DialogWeightEntry() {
         // Required empty public constructor
@@ -42,7 +41,7 @@ public class DialogWeightEntry extends DialogFragment {
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
         binding = FragmentDialogWeightEntryBinding.inflate(getLayoutInflater());
         viewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
-        weightRepository = new WeightRepository(WeightrDb.get(requireContext()).dailyWeightDao());
+        dailyWeightRepository = new DailyWeightRepository(WeightrDb.get(requireContext()).dailyWeightDao());
 
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setView(binding.getRoot());
@@ -97,7 +96,7 @@ public class DialogWeightEntry extends DialogFragment {
             Toast.makeText(requireContext(), R.string.error_no_user, Toast.LENGTH_SHORT).show();
             return;
         }
-        weightRepository.logWeight(
+        dailyWeightRepository.logWeight(
                 uid,
                 weight, date, () -> {
                     viewModel.refreshData();

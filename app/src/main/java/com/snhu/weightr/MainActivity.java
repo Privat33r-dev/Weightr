@@ -12,7 +12,6 @@ import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
-import com.snhu.weightr.data.session.SessionStore;
 import com.snhu.weightr.databinding.ActivityMainBinding;
 import com.snhu.weightr.ui.dialogs.DialogWeightEntry;
 import com.snhu.weightr.ui.login.LoginActivity;

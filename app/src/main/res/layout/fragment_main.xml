@@ -9,7 +9,7 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:background="?attr/colorSurface"
         android:padding="16dp">
 
@@ -45,11 +45,11 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="200 lbs"
+                    android:text="@string/placeholder_weight"
                     android:textAppearance="?attr/textAppearanceHeadlineLarge"
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:textStyle="bold"
-                    tools:text="200 lbs" />
+                    tools:text="180.5 lbs" />
 
                 <TextView
                     android:id="@+id/goal_weight_title"
@@ -65,11 +65,11 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="150 lbs"
+                    android:text="@string/placeholder_goal"
                     android:textAppearance="?attr/textAppearanceHeadlineLarge"
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:textStyle="bold"
-                    tools:text="150 lbs" />
+                    tools:text="150.0 lbs" />
 
                 <com.google.android.material.progressindicator.LinearProgressIndicator
                     android:id="@+id/progress_bar"
@@ -78,24 +78,23 @@
                     android:layout_height="8dp"
                     android:layout_marginTop="24dp"
                     android:indeterminate="false"
-                    android:progress="50"
+                    android:progress="0"
                     app:trackCornerRadius="4dp"
                     app:trackThickness="4dp"
-                    tools:progress="50" />
+                    tools:progress="60" />
 
                 <TextView
                     android:id="@+id/progress_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="50% to goal"
+                    android:text="@string/placeholder_progress"
                     android:textAlignment="center"
                     android:textAppearance="?attr/textAppearanceBodyMedium"
                     android:textColor="?attr/colorOnSurfaceVariant"
-                    tools:text="50% to goal" />
+                    tools:text="60% to goal" />
 
             </LinearLayout>
-
         </com.google.android.material.card.MaterialCardView>
 
         <!-- Edit Goal Button -->
@@ -105,30 +104,37 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:text="@string/edit_goal"
-            app:cornerRadius="4dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/progress_card"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:nextFocusDown="@+id/fab"
-            />
+            app:cornerRadius="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/progress_card"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:nextFocusDown="@+id/fab" />
 
-        <TextView
-            android:id="@+id/graph_placeholder"
+        <!-- Temporary Graph Placeholder -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/graph_card"
             android:layout_width="0dp"
             android:layout_height="200dp"
             android:layout_marginTop="32dp"
-            android:background="?attr/colorSurfaceVariant"
-            android:gravity="center"
-            android:text="Weight Trend Graph\n(Coming Soon)"
-            android:textAlignment="center"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            android:textColor="?attr/colorOnSurface"
+            app:cardBackgroundColor="?attr/colorSurfaceVariant"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/edit_goal_button"
-            tools:ignore="HardcodedText" />
+            app:layout_constraintTop_toBottomOf="@+id/edit_goal_button">
 
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="@string/placeholder_graph"
+                android:textAppearance="?attr/textAppearanceBodyLarge"
+                android:textColor="?attr/colorOnSurface"
+                tools:text="Weight Trend Graph Placeholder" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Motivation Text -->
         <TextView
             android:id="@+id/motivation_text"
             android:layout_width="0dp"
@@ -140,8 +146,7 @@
             android:textColor="?attr/colorOnSurfaceVariant"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/graph_placeholder" />
+            app:layout_constraintTop_toBottomOf="@+id/graph_card" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-
 </androidx.core.widget.NestedScrollView>

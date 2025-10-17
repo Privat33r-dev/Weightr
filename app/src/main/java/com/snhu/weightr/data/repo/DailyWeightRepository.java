@@ -1,11 +1,8 @@
 package com.snhu.weightr.data.repo;
 
-import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.snhu.weightr.R;
 import com.snhu.weightr.data.db.dao.DailyWeightDao;
 import com.snhu.weightr.data.db.entity.DailyWeightEntity;
 import com.snhu.weightr.data.repo.util.DbExecutor;
@@ -17,11 +14,11 @@ import java.util.function.Consumer;
  * Manages weight data operations.
  * Thin layer over DailyWeightDao for weight logging and retrieval.
  */
-public final class WeightRepository {
+public final class DailyWeightRepository {
 
     private final DailyWeightDao weightDao;
 
-    public WeightRepository(@NonNull DailyWeightDao weightDao) {
+    public DailyWeightRepository(@NonNull DailyWeightDao weightDao) {
         this.weightDao = weightDao;
     }
 
