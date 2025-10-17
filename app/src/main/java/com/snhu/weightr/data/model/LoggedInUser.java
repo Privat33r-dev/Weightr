@@ -1,23 +1,26 @@
 package com.snhu.weightr.data.model;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Data class that captures user information for logged in users retrieved from LoginRepository
  */
 public class LoggedInUser {
 
-    private String userId;
-    private String displayName;
+    private final Long userId;
+    private final String userName;
 
-    public LoggedInUser(String userId, String displayName) {
+    public LoggedInUser(Long userId, String userName) {
         this.userId = userId;
-        this.displayName = displayName;
+        this.userName = userName;
     }
 
-    public String getUserId() {
+    @NotNull
+    public Long getUserId() {
         return userId;
     }
 
-    public String getDisplayName() {
-        return displayName;
+    public String getUserName() {
+        return userName;
     }
 }

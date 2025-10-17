@@ -1,138 +1,218 @@
 package com.snhu.weightr.ui.login;
 
 import android.app.Activity;
-
-import androidx.annotation.NonNull;
-import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProvider;
-
 import android.content.Intent;
 import android.os.Bundle;
-
-import androidx.annotation.Nullable;
-import androidx.annotation.StringRes;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
+
+import com.google.android.material.progressindicator.CircularProgressIndicator;
+import com.google.android.material.textfield.TextInputLayout;
 import com.snhu.weightr.MainActivity;
 import com.snhu.weightr.R;
+import com.snhu.weightr.data.model.LoggedInUser;
+import com.snhu.weightr.data.session.SessionStore;
 import com.snhu.weightr.databinding.ActivityLoginBinding;
+import com.snhu.weightr.util.utils;
 
-public class LoginActivity extends AppCompatActivity {
+public final class LoginActivity extends AppCompatActivity {
 
-    private LoginViewModel loginViewModel;
     private ActivityLoginBinding binding;
+    private LoginViewModel loginViewModel;
+
+    private enum Mode {LOGIN, REGISTER}
+
+    private Mode mode = Mode.LOGIN;
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (checkSessionExists()) {
+            sendToMainActivity();
+            return;
+        }
 
         binding = ActivityLoginBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-
         @NonNull LoginViewModelFactory factory =
                 new LoginViewModelFactory(getApplicationContext());
+        loginViewModel = new ViewModelProvider(this, factory).get(LoginViewModel.class);
 
-        loginViewModel = new ViewModelProvider(this, factory)
-                .get(LoginViewModel.class);
+        hookObservers();
+        hookUiEvents();
+        applyMode(Mode.LOGIN);
+    }
 
-        final EditText usernameEditText = binding.username;
-        final EditText passwordEditText = binding.password;
-        final Button loginButton = binding.loginOrRegister;
-        final ProgressBar loadingProgressBar = binding.loading;
+    private void hookObservers() {
+        final TextInputLayout usernameLayout = binding.usernameLayout;
+        final TextInputLayout passwordLayout = binding.passwordLayout;
+        final TextInputLayout passwordRepeatLayout = binding.passwordRepeatLayout;
 
-        loginViewModel.getLoginFormState().observe(this, new Observer<LoginFormState>() {
-            @Override
-            public void onChanged(@Nullable LoginFormState loginFormState) {
-                if (loginFormState == null) {
-                    return;
-                }
-                loginButton.setEnabled(loginFormState.isDataValid());
-                if (loginFormState.getUsernameError() != null) {
-                    usernameEditText.setError(getString(loginFormState.getUsernameError()));
-                }
-                if (loginFormState.getPasswordError() != null) {
-                    passwordEditText.setError(getString(loginFormState.getPasswordError()));
-                }
+        loginViewModel.getLoginFormState().observe(this, state -> {
+            if (state == null) return;
+            binding.loginOrRegister.setEnabled(state.isDataValid());
+            usernameLayout.setError(state.getUsernameError() != null
+                    ? getString(state.getUsernameError()) : null);
+            passwordLayout.setError(state.getPasswordError() != null
+                    ? getString(state.getPasswordError()) : null);
+
+            if (mode == Mode.REGISTER) {
+                boolean matches = TextUtils.equals(
+                        utils.safeText(binding.password.getText()),
+                        utils.safeText(binding.passwordRepeat.getText()));
+                passwordRepeatLayout.setError(matches ? null : getString(R.string.error_password_mismatch));
+            } else {
+                passwordRepeatLayout.setError(null);
             }
         });
 
-        loginViewModel.getLoginResult().observe(this, loginResult -> {
-            if (loginResult == null) {
+        loginViewModel.getLoginResult().observe(this, result -> {
+            if (result == null) return;
+            setLoading(false);
+            if (result.getError() != null) {
+                showError(result.getError());
                 return;
             }
-            loadingProgressBar.setVisibility(View.GONE);
-            if (loginResult.getError() != null) {
-                showLoginFailed(loginResult.getError());
+            if (result.getSuccess() != null) {
+                onAuthSuccess();
             }
-            if (loginResult.getSuccess() != null) {
-                updateUiWithUser(loginResult.getSuccess());
-            }
-            setResult(Activity.RESULT_OK);
-
-            //Complete and destroy login activity once successful
-            finish();
         });
+    }
 
-        TextWatcher afterTextChangedListener = new TextWatcher() {
+    private void hookUiEvents() {
+        TextWatcher watcher = new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                // ignore
             }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // ignore
             }
 
             @Override
             public void afterTextChanged(Editable s) {
-                loginViewModel.loginDataChanged(usernameEditText.getText().toString(),
-                        passwordEditText.getText().toString());
+                loginViewModel.loginDataChanged(
+                        utils.safeText(binding.username.getText()),
+                        utils.safeText(binding.password.getText()));
             }
         };
-        usernameEditText.addTextChangedListener(afterTextChangedListener);
-        passwordEditText.addTextChangedListener(afterTextChangedListener);
-        passwordEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+        binding.username.addTextChangedListener(watcher);
+        binding.password.addTextChangedListener(watcher);
+        binding.passwordRepeat.addTextChangedListener(watcher);
 
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_DONE) {
-                    loginViewModel.login(usernameEditText.getText().toString(),
-                            passwordEditText.getText().toString());
-                }
-                return false;
+        binding.password.setOnEditorActionListener((v, actionId, event) -> {
+            if (mode == Mode.LOGIN &&
+                    (actionId == EditorInfo.IME_ACTION_DONE ||
+                            (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER &&
+                                    event.getAction() == KeyEvent.ACTION_UP))) {
+                submit();
+                return true;
             }
+            return false;
         });
 
-        loginButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                loadingProgressBar.setVisibility(View.VISIBLE);
-                loginViewModel.login(usernameEditText.getText().toString(),
-                        passwordEditText.getText().toString());
+        binding.passwordRepeat.setOnEditorActionListener((v, actionId, event) -> {
+            if (mode == Mode.REGISTER &&
+                    (actionId == EditorInfo.IME_ACTION_DONE ||
+                            (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER &&
+                                    event.getAction() == KeyEvent.ACTION_UP))) {
+                submit();
+                return true;
             }
+            return false;
         });
+
+        binding.loginOrRegister.setOnClickListener(v -> submit());
+        binding.switchMode.setOnClickListener(v ->
+                applyMode(mode == Mode.LOGIN ? Mode.REGISTER : Mode.LOGIN));
     }
 
-    private void updateUiWithUser(LoggedInUserView model) {
-        String welcome = getString(R.string.welcome) + model.getDisplayName();
-        Toast.makeText(getApplicationContext(), welcome, Toast.LENGTH_LONG).show();
-        startActivity(new Intent(LoginActivity.this, MainActivity.class));
+    private void applyMode(Mode newMode) {
+        this.mode = newMode;
+        final boolean isRegister = (newMode == Mode.REGISTER);
+
+        binding.passwordRepeatLayout.setVisibility(isRegister ? View.VISIBLE : View.GONE);
+
+        binding.loginOrRegister.setText(isRegister
+                ? R.string.action_register_short
+                : R.string.action_sign_in_short);
+
+        binding.switchMode.setText(isRegister
+                ? R.string.switch_to_login
+                : R.string.switch_to_register);
+
+        binding.username.setImeOptions(EditorInfo.IME_ACTION_NEXT);
+        binding.password.setImeOptions(isRegister ? EditorInfo.IME_ACTION_NEXT : EditorInfo.IME_ACTION_DONE);
     }
 
-    private void showLoginFailed(@StringRes Integer errorString) {
-        Toast.makeText(getApplicationContext(), errorString, Toast.LENGTH_SHORT).show();
+    private void submit() {
+        if (mode == Mode.REGISTER) {
+            final String pw = utils.safeText(binding.password.getText());
+            final String pw2 = utils.safeText(binding.passwordRepeat.getText());
+            if (!TextUtils.equals(pw, pw2)) {
+                binding.passwordRepeatLayout.setError(getString(R.string.error_password_mismatch));
+                return;
+            }
+            setLoading(true);
+            loginViewModel.register(
+                    utils.safeText(binding.username.getText()),
+                    pw);
+            return;
+        }
+
+        setLoading(true);
+        loginViewModel.login(
+                utils.safeText(binding.username.getText()),
+                utils.safeText(binding.password.getText()));
+    }
+
+    private void setLoading(boolean loading) {
+        CircularProgressIndicator p = binding.loading;
+        p.setVisibility(loading ? View.VISIBLE : View.GONE);
+        binding.loginOrRegister.setEnabled(!loading);
+        binding.usernameLayout.setEnabled(!loading);
+        binding.passwordLayout.setEnabled(!loading);
+        binding.passwordRepeatLayout.setEnabled(!loading);
+    }
+
+
+    private void onAuthSuccess() {
+        setResult(Activity.RESULT_OK);
+        Toast.makeText(this, R.string.welcome, Toast.LENGTH_SHORT).show();
+
+        LoginResult tmp = loginViewModel.getLoginResult().getValue();
+        // TODO: better handling
+        if (tmp == null) throw new IllegalStateException("Authorized, but unable to fetch user");
+        LoggedInUser user = tmp.getSuccess();
+        if (user == null) throw new IllegalStateException("Authorized, but unable to fetch user");
+
+        SessionStore.get(this).save(user.getUserId(), user.getUserName());
+        sendToMainActivity();
+    }
+
+    private void showError(@StringRes int msg) {
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+    }
+
+    private boolean checkSessionExists() {
+        return SessionStore.get(this).userId() >= 0;
+    }
+
+    private void sendToMainActivity() {
+        startActivity(new Intent(this, MainActivity.class));
+        finish();
     }
 }

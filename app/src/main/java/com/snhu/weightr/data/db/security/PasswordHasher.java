@@ -1,4 +1,4 @@
-package com.snhu.weightr.data.security;
+package com.snhu.weightr.data.db.security;
 
 import android.util.Base64;
 import java.security.MessageDigest;

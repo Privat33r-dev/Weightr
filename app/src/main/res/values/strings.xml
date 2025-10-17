@@ -5,6 +5,7 @@
     <string name="prompt_password">Password</string>
     <string name="action_sign_in">Sign in or register</string>
     <string name="action_sign_in_short">Sign in</string>
+    <string name="action_register_short">Register</string>
     <string name="welcome">"Welcome !"</string>
     <string name="invalid_username">Not a valid username</string>
     <string name="invalid_password">Password must be >5 characters</string>
@@ -53,6 +54,7 @@
     </string>
     <string name="action_sign_up">Sign Up</string>
     <string name="switch_to_register">Don\'t have an account? Sign up</string>
+    <string name="switch_to_login">Already have an account? Sign in</string>
     <string name="toggle_password_visibility">Show password</string>
     <string name="prompt_username">Username</string>
     <string name="set_goal">Set new goal</string>
@@ -74,4 +76,19 @@
     <string name="skip_permission_description">Skip SMS permission request and continue</string>
     <string name="request_sms_permission_description">Request permission to send goal achievement SMS notifications</string>
     <string name="continue_without_sms_description">Continue without SMS notifications (app will use in-app alerts)</string>
+    <string name="prompt_password_repeat">Repeat password</string>
+    <string name="error_invalid_username">Enter a valid username</string>
+    <string name="error_invalid_password">Password must be at least 8 characters</string>
+    <string name="error_password_mismatch">Passwords don\'t match</string>
+    <string name="register_failed">Registration failed</string>
+    <string name="current_date">Date: %1$s</string>
+    <string name="enter_weight">Enter weight</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="error_invalid_weight">Enter a valid weight</string>
+    <string name="weight_saved">Weight logged successfully!</string>
+    <string name="error_no_user">Invalid state: no user. Try to relogin.</string>
+    <string name="already_logged">You already logged your weight for today.</string>
+
+
 </resources>

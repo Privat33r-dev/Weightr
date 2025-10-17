@@ -1,70 +1,74 @@
+// app/src/main/java/com/x/weightr/ui/login/LoginViewModel.java
 package com.snhu.weightr.ui.login;
 
+import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import android.util.Patterns;
-
-import com.snhu.weightr.data.LoginRepository;
-import com.snhu.weightr.data.Result;
-import com.snhu.weightr.data.model.LoggedInUser;
 import com.snhu.weightr.R;
+import com.snhu.weightr.data.model.LoggedInUser;
+import com.snhu.weightr.data.repo.UserRepository;
 
-public class LoginViewModel extends ViewModel {
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
-    private MutableLiveData<LoginFormState> loginFormState = new MutableLiveData<>();
-    private MutableLiveData<LoginResult> loginResult = new MutableLiveData<>();
-    private LoginRepository loginRepository;
+public final class LoginViewModel extends ViewModel {
 
-    LoginViewModel(LoginRepository loginRepository) {
-        this.loginRepository = loginRepository;
+    private final MutableLiveData<LoginFormState> loginFormState = new MutableLiveData<>();
+    private final MutableLiveData<LoginResult> loginResult = new MutableLiveData<>();
+
+    private final UserRepository userRepository;
+    private final Executor io = Executors.newSingleThreadExecutor();
+
+    public LoginViewModel(@NonNull UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
-    LiveData<LoginFormState> getLoginFormState() {
+    public LiveData<LoginFormState> getLoginFormState() {
         return loginFormState;
     }
 
-    LiveData<LoginResult> getLoginResult() {
+    public LiveData<LoginResult> getLoginResult() {
         return loginResult;
     }
 
+    /**
+     * Attempt to log in using local Room-backed user table.
+     */
     public void login(String username, String password) {
-        // can be launched in a separate asynchronous job
-        Result<LoggedInUser> result = loginRepository.login(username, password);
-
-        if (result instanceof Result.Success) {
-            LoggedInUser data = ((Result.Success<LoggedInUser>) result).getData();
-            loginResult.setValue(new LoginResult(new LoggedInUserView(data.getDisplayName())));
-        } else {
-            loginResult.setValue(new LoginResult(R.string.login_failed));
-        }
+        userRepository.authenticate(username, password, (user) -> {
+            if (user != null) {
+                // Successful login
+                loginResult.postValue(new LoginResult(new LoggedInUser(user.id, user.username)));
+            } else {
+                loginResult.postValue(new LoginResult(R.string.login_failed));
+            }
+        });
     }
 
+    /**
+     * Register a new user and auto-login.
+     */
+    public void register(String username, String password) {
+        userRepository.createUser(username, password, (userId) -> {
+            try {
+                loginResult.postValue(new LoginResult(new LoggedInUser(userId, username)));
+            } catch (Exception e) {
+                loginResult.postValue(new LoginResult(R.string.register_failed));
+            }
+        });
+    }
+
+    /**
+     * Validate login form inputs.
+     */
     public void loginDataChanged(String username, String password) {
-        if (!isUserNameValid(username)) {
-            loginFormState.setValue(new LoginFormState(R.string.invalid_username, null));
-        } else if (!isPasswordValid(password)) {
-            loginFormState.setValue(new LoginFormState(null, R.string.invalid_password));
-        } else {
-            loginFormState.setValue(new LoginFormState(true));
-        }
+        Integer usernameError = (username == null || username.trim().isEmpty())
+                ? R.string.error_invalid_username : null;
+        Integer passwordError = (password == null || password.length() < 8)
+                ? R.string.error_invalid_password : null;
+        loginFormState.setValue(new LoginFormState(usernameError, passwordError));
     }
 
-    // A placeholder username validation check
-    private boolean isUserNameValid(String username) {
-        if (username == null) {
-            return false;
-        }
-        if (username.contains("@")) {
-            return Patterns.EMAIL_ADDRESS.matcher(username).matches();
-        } else {
-            return !username.trim().isEmpty();
-        }
-    }
-
-    // A placeholder password validation check
-    private boolean isPasswordValid(String password) {
-        return password != null && password.trim().length() > 5;
-    }
 }

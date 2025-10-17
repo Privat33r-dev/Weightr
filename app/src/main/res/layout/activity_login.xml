@@ -7,6 +7,7 @@
     android:layout_height="match_parent"
     android:background="?attr/colorSurface"
     android:padding="24dp"
+    android:importantForAutofill="yes"
     tools:context=".ui.login.LoginActivity">
 
     <TextView
@@ -21,15 +22,13 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Username -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/username_layout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
         android:hint="@string/prompt_username"
-        app:boxStrokeColor="?attr/colorOutline"
-        app:boxStrokeErrorColor="?attr/colorError"
-        app:endIconMode="none"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/title">
@@ -38,23 +37,20 @@
             android:id="@+id/username"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="text"
-            android:nextFocusDown="@+id/password"
-            android:selectAllOnFocus="true"
+            android:inputType="textEmailAddress|textNoSuggestions"
+            android:autofillHints="username,emailAddress"
+            android:imeOptions="actionNext"
             android:textColor="?attr/colorOnSurface"
             android:textColorHint="?attr/colorOnSurfaceVariant" />
-        <!-- Color contrast ignored: false positive. See https://m3.material.io/foundations/designing/color-contrast -->
-
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- Password -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/password_layout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:hint="@string/prompt_password"
-        app:boxStrokeColor="?attr/colorOutline"
-        app:boxStrokeErrorColor="?attr/colorError"
         app:endIconContentDescription="@string/toggle_password_visibility"
         app:endIconMode="password_toggle"
         app:layout_constraintEnd_toEndOf="parent"
@@ -65,29 +61,47 @@
             android:id="@+id/password"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:imeOptions="actionDone"
+            android:imeOptions="actionNext"
             android:inputType="textPassword"
-            android:nextFocusDown="@+id/sign_in_button"
-            android:selectAllOnFocus="true"
+            android:autofillHints="password"
             android:textColor="?attr/colorOnSurface"
             android:textColorHint="?attr/colorOnSurfaceVariant" />
-        <!-- Color contrast ignored: false positive. See https://m3.material.io/foundations/designing/color-contrast -->
+    </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- Password (repeat) for register -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/password_repeat_layout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="@string/prompt_password_repeat"
+        android:visibility="gone"
+        app:endIconContentDescription="@string/toggle_password_visibility"
+        app:endIconMode="password_toggle"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/password_layout">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/password_repeat"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:imeOptions="actionDone"
+            android:inputType="textPassword"
+            android:textColor="?attr/colorOnSurface"
+            android:textColorHint="?attr/colorOnSurfaceVariant" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/login_or_register"
         style="@style/Widget.Material3.Button.IconButton.Filled"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:nextFocusRight="@+id/switch_mode"
         android:text="@string/action_sign_in_short"
-        android:textAppearance="?attr/textAppearanceButton"
-        app:cornerRadius="4dp"
         app:layout_constraintEnd_toEndOf="@+id/password_layout"
         app:layout_constraintStart_toStartOf="@+id/password_layout"
-        app:layout_constraintTop_toBottomOf="@+id/password_layout" />
+        app:layout_constraintTop_toBottomOf="@+id/password_repeat_layout" />
 
     <TextView
         android:id="@+id/switch_mode"
@@ -110,7 +124,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:indeterminateTint="?attr/colorPrimary"
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

@@ -1,40 +1,46 @@
 package com.snhu.weightr.ui.login;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
 
 /**
- * Data validation state of the login form.
+ * Validation state of the login form.
  */
-class LoginFormState {
-    @Nullable
-    private Integer usernameError;
-    @Nullable
-    private Integer passwordError;
-    private boolean isDataValid;
+public final class LoginFormState {
 
-    LoginFormState(@Nullable Integer usernameError, @Nullable Integer passwordError) {
+    @Nullable @StringRes
+    private final Integer usernameError;
+
+    @Nullable @StringRes
+    private final Integer passwordError;
+
+    private final boolean isDataValid;
+
+    /** Invalid state with specific input errors. */
+    public LoginFormState(@Nullable Integer usernameError, @Nullable Integer passwordError) {
         this.usernameError = usernameError;
         this.passwordError = passwordError;
-        this.isDataValid = false;
+        this.isDataValid = (usernameError == null && passwordError == null);
     }
 
-    LoginFormState(boolean isDataValid) {
+    /** Valid state. */
+    public LoginFormState(boolean isDataValid) {
         this.usernameError = null;
         this.passwordError = null;
         this.isDataValid = isDataValid;
     }
 
     @Nullable
-    Integer getUsernameError() {
+    public Integer getUsernameError() {
         return usernameError;
     }
 
     @Nullable
-    Integer getPasswordError() {
+    public Integer getPasswordError() {
         return passwordError;
     }
 
-    boolean isDataValid() {
+    public boolean isDataValid() {
         return isDataValid;
     }
 }

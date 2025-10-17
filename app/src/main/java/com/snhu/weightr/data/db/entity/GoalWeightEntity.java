@@ -14,7 +14,7 @@ import androidx.room.PrimaryKey;
                 childColumns = "user_id",
                 onDelete = ForeignKey.CASCADE
         ),
-        indices = {@Index("user_id"), @Index(value = "user_id", unique = true)}
+        indices = {@Index(value = "user_id", unique = true)}
 )
 public final class GoalWeightEntity {
     @PrimaryKey(autoGenerate = true)

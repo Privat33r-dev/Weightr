@@ -31,4 +31,5 @@ room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+room = { id = "androidx.room", version.ref = "room" }
 

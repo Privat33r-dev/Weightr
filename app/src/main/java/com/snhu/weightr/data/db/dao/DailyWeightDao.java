@@ -10,11 +10,14 @@ import java.util.List;
 @Dao
 public interface DailyWeightDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    long upsert(DailyWeightEntity entry);
+    void upsert(DailyWeightEntity entry);
 
     @Query("SELECT * FROM daily_weights WHERE user_id = :userId ORDER BY date DESC")
     List<DailyWeightEntity> listForUser(long userId);
 
-    @Query("DELETE FROM daily_weights WHERE user_id = :userId AND date = :isoDate")
-    void deleteForDay(long userId, String isoDate);
+    @Query("SELECT * FROM daily_weights WHERE id = :id LIMIT 1")
+    DailyWeightEntity getById(long id);
+    @Query("DELETE FROM daily_weights WHERE id = :id")
+    void deleteById(long id);
+
 }

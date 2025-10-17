@@ -1,15 +1,14 @@
+// app/src/main/java/com/x/weightr/ui/login/LoginViewModelFactory.java  (replace)
 package com.snhu.weightr.ui.login;
 
 import android.content.Context;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
-import com.snhu.weightr.data.LoginDataSource;
-import com.snhu.weightr.data.LoginRepository;
+import com.snhu.weightr.data.db.WeightrDb;
+import com.snhu.weightr.data.repo.UserRepository;
 
-/** Provides LoginViewModel instances with proper dependencies. */
 public final class LoginViewModelFactory implements ViewModelProvider.Factory {
-
     private final Context appContext;
 
     public LoginViewModelFactory(@NonNull Context context) {
@@ -21,9 +20,9 @@ public final class LoginViewModelFactory implements ViewModelProvider.Factory {
     @SuppressWarnings("unchecked")
     public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
         if (modelClass.isAssignableFrom(LoginViewModel.class)) {
-            LoginDataSource dataSource = new LoginDataSource(appContext);
-            LoginRepository repo = LoginRepository.getInstance(dataSource);
-            return (T) new LoginViewModel(repo);
+            UserRepository userRepo =
+                    new UserRepository(WeightrDb.get(appContext).userDao());
+            return (T) new LoginViewModel(userRepo);
         }
         throw new IllegalArgumentException("Unknown ViewModel class");
     }
