@@ -8,6 +8,7 @@ import androidx.annotation.Nullable;
 
 import com.snhu.weightr.data.session.SessionStore;
 
+// Wrapper over SharedPreferences to store app settings.
 public final class SettingsStore {
     private static final String PREF = "settings";
     private static final String KEY_SMS_ENABLED = "sms_enabled";

@@ -7,11 +7,7 @@ import com.snhu.weightr.data.db.dao.DailyWeightDao;
 import com.snhu.weightr.data.db.entity.DailyWeightEntity;
 import com.snhu.weightr.data.repo.util.DbExecutor;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.function.Consumer;
 
 /**

@@ -21,6 +21,14 @@ public final class GoalWeightRepository {
         this.goalWeightDao = goalWeightDao;
     }
 
+    /**
+     * Sets the goal weight for a user.
+     *
+     * @param userId ID of the user
+     * @param currentGoal new goal of the user
+     * @param goalStart new start of the goal of the user
+     * @param callback callback to run after deletion completed
+     */
     public void setGoal(@NonNull Long userId, double currentGoal, double goalStart, @Nullable Runnable callback) {
         DbExecutor.get().execute(() -> {
             GoalWeightEntity existing = goalWeightDao.getForUser(userId);
@@ -35,6 +43,12 @@ public final class GoalWeightRepository {
         });
     }
 
+    /**
+     * Deletes the goal weight for a user.
+     *
+     * @param userId ID of the user
+     * @param callback callback to run after deletion completed
+     */
     public void deleteGoal(@NonNull Long userId, @Nullable Runnable callback) {
         DbExecutor.get().execute(() -> {
             goalWeightDao.deleteForUser(userId);
@@ -46,7 +60,7 @@ public final class GoalWeightRepository {
      * Retrieves the goal weight for a user.
      *
      * @param userId ID of the user
-     * @return GoalWeightEntity or null if none
+     * @param callback receives GoalWeightEntity as a param or null if none
      */
     public void getGoalWeight(@NonNull Long userId, @NonNull Consumer<GoalWeightEntity> callback) {
         DbExecutor.get().execute(() -> {

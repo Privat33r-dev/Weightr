@@ -3,6 +3,7 @@ package com.snhu.weightr.data.session;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+// Stores user session (user id and username) via SharedPreferences
 public final class SessionStore {
     private static final String PREF = "session";
     private static volatile SessionStore INSTANCE;
