@@ -68,7 +68,7 @@
     <string name="navigate_to_history">Open weight log</string>
 
     <string name="sms_permissions_title">Enable Goal Celebrations?</string>
-    <string name="sms_permissions_explanation">Allow SMS notifications to cheer your progress? We\'ll only send celebratory messages when you hit your weight goal, like \"You did it—150 lbs achieved!\" No spam, ever.</string>
+    <string name="sms_permissions_explanation">Allow SMS notifications to cheer your progress? We\'ll only send celebratory messages when you hit your weight goal, like \"You did it—150 lbs achieved!\" \n\nNo spam, ever.</string>
     <string name="request_sms_permission">Grant SMS Access</string>
     <string name="continue_without_sms">Continue Without SMS</string>
     <string name="mock_goal_sms">Congrats! 🎉 You\'ve reached your goal weight of 150 lbs. Keep it up!</string>
@@ -111,4 +111,7 @@
     <string name="edit_entry">Button to edit this entry</string>
     <string name="generic_error">Error: %s</string>
     <string name="weight_edited">Weight has been edited</string>
+    <string name="sms_goal_reached">Goal reached! Current weight: %1$.1f</string>
+    <string name="sms_failed">Couldn’t send SMS: %1$s</string>
+    <string name="sms_error">Unable to send SMS: %s</string>
 </resources>

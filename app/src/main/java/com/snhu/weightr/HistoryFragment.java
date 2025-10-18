@@ -9,6 +9,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.ListAdapter;
@@ -20,15 +21,17 @@ import com.snhu.weightr.data.db.entity.DailyWeightEntity;
 import com.snhu.weightr.data.repo.DailyWeightRepository;
 import com.snhu.weightr.data.session.SessionStore;
 import com.snhu.weightr.ui.dialogs.DialogWeightEntry;
+import com.snhu.weightr.ui.viewmodel.MainViewModel;
 
 import java.util.Locale;
 import java.util.Objects;
 
 public final class HistoryFragment extends Fragment {
 
-    private RecyclerView rv;
+    private RecyclerView recyclerView;
     private HistoryAdapter adapter;
     private DailyWeightRepository dailyWeightRepository;
+    private MainViewModel viewModel;
     private Long userId;
 
     @Nullable
@@ -43,10 +46,10 @@ public final class HistoryFragment extends Fragment {
     public void onViewCreated(@NonNull View v, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(v, savedInstanceState);
 
-        rv = v.findViewById(R.id.rv_history);
-        rv.setLayoutManager(new LinearLayoutManager(requireContext()));
+        recyclerView = v.findViewById(R.id.rv_history);
+        recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new HistoryAdapter(this::onDelete, this::onEdit);
-        rv.setAdapter(adapter);
+        recyclerView.setAdapter(adapter);
 
         DailyWeightDao dao = WeightrDb.get(requireContext()).dailyWeightDao();
         dailyWeightRepository = new DailyWeightRepository(dao);
@@ -58,6 +61,11 @@ public final class HistoryFragment extends Fragment {
             Toast.makeText(requireContext(), R.string.error_no_user, Toast.LENGTH_SHORT).show();
             return;
         }
+
+        // set dynamic updates
+        viewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
+        viewModel.getHistory().observe(getViewLifecycleOwner(), list -> adapter.submitList(list));
+
 
         getParentFragmentManager().setFragmentResultListener(
                 "weight_saved", getViewLifecycleOwner(), (key, bundle) -> loadData()
@@ -73,7 +81,10 @@ public final class HistoryFragment extends Fragment {
     }
 
     private void onDelete(@NonNull DailyWeightEntity item) {
-        dailyWeightRepository.deleteWeight(item.id, () -> requireActivity().runOnUiThread(this::loadData));
+        dailyWeightRepository.deleteWeight(item.id, () -> requireActivity().runOnUiThread(()-> {
+            this.loadData();
+            viewModel.refreshData();
+        }));;
     }
 
     private void onEdit(@NonNull DailyWeightEntity item) {

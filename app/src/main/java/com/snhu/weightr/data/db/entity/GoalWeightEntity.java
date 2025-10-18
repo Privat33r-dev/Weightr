@@ -19,12 +19,15 @@ import androidx.room.PrimaryKey;
 public final class GoalWeightEntity {
     @PrimaryKey(autoGenerate = true)
     public long id;
+
     @ColumnInfo(name = "user_id")
     public long userId;
 
+    /* Target weight */
     @ColumnInfo(name = "current_goal")
-    public double currentGoal; // Target weight
+    public double currentGoal;
 
+    /* Starting weight when goal was set */
     @ColumnInfo(name = "goal_start")
-    public double goalStart; // Starting weight when goal was set
+    public double goalStart;
 }

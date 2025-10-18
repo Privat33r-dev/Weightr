@@ -1,5 +1,7 @@
 package com.snhu.weightr.ui.dialogs;
 
+import static com.snhu.weightr.util.Utils.isoUtc;
+
 import android.app.Dialog;
 import android.os.Bundle;
 import android.text.Editable;
@@ -138,7 +140,6 @@ public final class DialogWeightEntry extends DialogFragment {
         dailyWeightRepository.logWeight(uid, weight, dateIso,
                 () -> requireActivity().runOnUiThread(() -> {
                     viewModel.refreshData();
-                    getParentFragmentManager().setFragmentResult("weight_saved", Bundle.EMPTY);
                     Toast.makeText(requireContext(), R.string.weight_saved, Toast.LENGTH_SHORT).show();
                     dismiss();
                 }),
@@ -153,7 +154,6 @@ public final class DialogWeightEntry extends DialogFragment {
         dailyWeightRepository.updateWeightById(editId, weight, dateIso,
                 () -> requireActivity().runOnUiThread(() -> {
                     viewModel.refreshData();
-                    getParentFragmentManager().setFragmentResult("weight_saved", Bundle.EMPTY);
                     Toast.makeText(requireContext(), R.string.weight_saved, Toast.LENGTH_SHORT).show();
                     dismiss();
                 }));
@@ -187,11 +187,6 @@ public final class DialogWeightEntry extends DialogFragment {
         }
     }
 
-    private static String isoUtc(Date d) {
-        SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-        f.setTimeZone(TimeZone.getTimeZone("UTC"));
-        return f.format(d);
-    }
 
     private static long parseIsoToUtcMillis(String iso) {
         try {

@@ -14,7 +14,7 @@ public interface DailyWeightDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void upsert(DailyWeightEntity entry);
 
-    @Insert(onConflict = OnConflictStrategy.ABORT)
+    @Insert()
     void insert(DailyWeightEntity entry);
 
     @Query("SELECT * FROM daily_weights WHERE user_id = :userId ORDER BY date DESC")

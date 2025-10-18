@@ -8,12 +8,16 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.snhu.weightr.data.db.WeightrDb;
+import com.snhu.weightr.data.db.entity.DailyWeightEntity;
 import com.snhu.weightr.data.repo.DailyWeightRepository;
 import com.snhu.weightr.data.repo.GoalWeightRepository;
 import com.snhu.weightr.data.session.SessionStore;
 
+import java.util.List;
+
 public class MainViewModel extends ViewModel {
 
+    private final MutableLiveData<List<DailyWeightEntity>> history = new MutableLiveData<>();
     private final MutableLiveData<Double> currentWeight = new MutableLiveData<>();
     private final MutableLiveData<Double> goalWeight = new MutableLiveData<>();
     private final MutableLiveData<Double> goalStartWeight = new MutableLiveData<>();
@@ -64,6 +68,8 @@ public class MainViewModel extends ViewModel {
             this.goalWeight.postValue(goalWeight);
             this.goalStartWeight.postValue(goalStartWeight);
         });
+
+        loadHistory();
     }
 
     /**
@@ -102,4 +108,19 @@ public class MainViewModel extends ViewModel {
     public LiveData<String> getUserName() {
         return userName;
     }
+
+    public LiveData<List<DailyWeightEntity>> getHistory() {
+        return history;
+    }
+
+    public void loadHistory() {
+        if (weightRepository == null || userId == null) {
+            history.setValue(java.util.Collections.emptyList());
+            return;
+        }
+        weightRepository.listWeightsForUser(userId.getValue(), list ->
+                history.postValue(new java.util.ArrayList<>(list))
+        );
+    }
+
 }
