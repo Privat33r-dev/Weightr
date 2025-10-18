@@ -1,4 +1,3 @@
-// app/src/main/java/com/x/weightr/ui/login/LoginViewModel.java
 package com.snhu.weightr.ui.login;
 
 import androidx.annotation.NonNull;
@@ -70,5 +69,4 @@ public final class LoginViewModel extends ViewModel {
                 ? R.string.error_invalid_password : null;
         loginFormState.setValue(new LoginFormState(usernameError, passwordError));
     }
-
 }

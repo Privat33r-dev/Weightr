@@ -79,14 +79,14 @@ public class MainViewModel extends ViewModel {
      * Sets the goal weight for current user.
      */
     public void setGoalWeight(double goal) {
-        Double goalStart = currentWeight.getValue();
-        long uid = userId.getValue();
-        if (goalWeightRepository == null || uid == -1) {
-            Log.e(TAG, "resetGoalWeight: no goalWeightRepository or uid");
+        double goalStart = currentWeight.getValue() != null ? currentWeight.getValue() : -1.0;
+        long uid = safeUnboxLong(userId);
+        if (goalWeightRepository == null || uid == -1 || goalStart == -1.0) {
+            Log.e(TAG, "resetGoalWeight: no goalWeightRepository or uid or invalid goalStart");
             return;
         }
 
-        goalWeightRepository.setGoal(userId.getValue(), goal, goalStart, () -> {
+        goalWeightRepository.setGoal(uid, goal, goalStart, () -> {
             goalWeight.postValue(goal);
             goalStartWeight.postValue(goalStart);
         });
@@ -96,7 +96,7 @@ public class MainViewModel extends ViewModel {
      * Resets the goal weight for current user.
      */
     public void deleteGoalWeight() {
-        long uid = userId.getValue();
+        long uid = safeUnboxLong(userId);
         if (goalWeightRepository == null || uid == -1) {
             Log.e(TAG, "resetGoalWeight: no goalWeightRepository or uid");
             goalWeight.setValue(null);
@@ -104,7 +104,7 @@ public class MainViewModel extends ViewModel {
             return;
         }
 
-        goalWeightRepository.deleteGoal(userId.getValue(), () -> {
+        goalWeightRepository.deleteGoal(uid, () -> {
             goalWeight.postValue(null);
             goalStartWeight.postValue(null);
         });
@@ -135,13 +135,19 @@ public class MainViewModel extends ViewModel {
     }
 
     public void loadHistory() {
-        if (weightRepository == null || userId == null) {
+        long userIdValue = safeUnboxLong(userId);
+        if (weightRepository == null || userIdValue == -1) {
             history.setValue(java.util.Collections.emptyList());
             return;
         }
-        weightRepository.listWeightsForUser(userId.getValue(), list ->
+        weightRepository.listWeightsForUser(userIdValue, list ->
                 history.postValue(new java.util.ArrayList<>(list))
         );
+    }
+
+    private long safeUnboxLong(MutableLiveData<Long> num) {
+        @Nullable Long tmp = num.getValue();
+        return tmp != null ? tmp : -1;
     }
 
 }

@@ -1,4 +1,3 @@
-// app/src/main/java/com/x/weightr/ui/login/LoginViewModelFactory.java  (replace)
 package com.snhu.weightr.ui.login;
 
 import android.content.Context;

@@ -4,19 +4,13 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.net.Uri;
 import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
-
-import com.snhu.weightr.R;
-import com.snhu.weightr.data.settings.SettingsStore;
 
 public final class SmsNotifier {
 

@@ -41,5 +41,7 @@ public final class LocalNotifier {
         NotificationManagerCompat.from(ctx).notify(id, b.build());
     }
 
-    private LocalNotifier() {}
+    // Disallow instantiation (make a class static)
+    private LocalNotifier() {
+    }
 }
