@@ -22,7 +22,6 @@ import com.snhu.weightr.data.repo.DailyWeightRepository;
 import com.snhu.weightr.data.session.SessionStore;
 import com.snhu.weightr.databinding.DialogWeightEntryBinding;
 import com.snhu.weightr.ui.viewmodel.MainViewModel;
-import com.snhu.weightr.data.db.dao.DailyWeightDao;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -45,7 +44,7 @@ public final class DialogWeightEntry extends DialogFragment {
     private boolean isEdit = false;
     private long editId = -1L;
     private long userIdArg = -1L;          // optional, if passed
-    private String originalDateIso = null; // when editing
+    private String originalDateIso = null; // for editing
     private String selectedDateIso;        // yyyy-MM-dd
 
     private static final String TAG = DialogWeightEntry.class.getName();
@@ -57,8 +56,7 @@ public final class DialogWeightEntry extends DialogFragment {
         binding = DialogWeightEntryBinding.inflate(getLayoutInflater());
         viewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
 
-        DailyWeightDao dao = WeightrDb.get(requireContext()).dailyWeightDao();
-        dailyWeightRepository = new DailyWeightRepository(dao);
+        dailyWeightRepository = new DailyWeightRepository(WeightrDb.get(requireContext()).dailyWeightDao());
 
         parseArgs(getArguments());
 
@@ -74,16 +72,8 @@ public final class DialogWeightEntry extends DialogFragment {
     }
 
     private void parseArgs(@Nullable Bundle args) {
-        if (args == null) {
-            isEdit = false;
-            editId = -1L;
-            userIdArg = -1L;
-            originalDateIso = null;
-            selectedDateIso = isoUtc(new Date());
-            return;
-        }
-        // If these are present → edit mode
-        if (args.containsKey(ARG_USER_ID) && args.containsKey(ARG_WEIGHT) && args.containsKey(ARG_DATE)) {
+        // If all these are present -> edit mode
+        if (args != null && args.containsKey(ARG_USER_ID) && args.containsKey(ARG_WEIGHT) && args.containsKey(ARG_DATE)) {
             isEdit = true;
             editId = args.getLong(ARG_ID, -1L);
             userIdArg = args.getLong(ARG_USER_ID, -1L);

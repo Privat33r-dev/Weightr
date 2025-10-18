@@ -7,7 +7,11 @@ import com.snhu.weightr.data.db.dao.DailyWeightDao;
 import com.snhu.weightr.data.db.entity.DailyWeightEntity;
 import com.snhu.weightr.data.repo.util.DbExecutor;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Consumer;
 
 /**
@@ -18,10 +22,18 @@ public final class DailyWeightRepository {
 
     private final DailyWeightDao weightDao;
 
+    /**
+     * Constructs a repository with the provided DAO.
+     *
+     * @param weightDao DAO for accessing daily weight data
+     */
     public DailyWeightRepository(@NonNull DailyWeightDao weightDao) {
         this.weightDao = weightDao;
     }
 
+    /**
+     * Callback interface for handling errors during database operations.
+     */
     public interface ErrorCallback {
         void onError(Exception e);
     }
@@ -62,7 +74,7 @@ public final class DailyWeightRepository {
      * Retrieves all weight entries for a user, sorted by date descending.
      *
      * @param userId   ID of the user
-     * @param callback Callback invoked on completion with the list (may be empty)
+     * @param callback Callback invoked on completion with the list as a parm (may be empty)
      */
     public void listWeightsForUser(@NonNull Long userId, @NonNull Consumer<List<DailyWeightEntity>> callback) {
         DbExecutor.get().execute(() -> {
@@ -77,7 +89,7 @@ public final class DailyWeightRepository {
      *
      * @param id        ID of the weight entry to update
      * @param newWeight Updated weight value
-     * @param newDate Updated date value
+     * @param newDate   Updated date value
      * @param callback  Optional callback for completion (default: no-op)
      */
     public void updateWeightById(@NonNull Long id, double newWeight, String newDate, @Nullable Runnable callback) {

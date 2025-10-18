@@ -64,11 +64,10 @@ public final class MainActivity extends AppCompatActivity {
                 this,
                 (key, bundle) -> {
                     boolean granted = bundle.getBoolean("granted", false);
-                    // TODO: sms enable
                 }
         );
 
-        // On each start
+        // On each start/login
         // TODO: allow to stop (maybe 1-5 days inactive)
         enableSmsIfNeeded();
         attachGoalObserver();
@@ -162,7 +161,8 @@ public final class MainActivity extends AppCompatActivity {
             if (!reached) return;
 
             congratulateUser(this, w);
-            // TODO: reset goal
+            // Reset goal weight to avoid redundant notifications on each state update/activity load
+            viewModel.deleteGoalWeight();
 
             String todayIso = Utils.isoUtc(new Date());
             SettingsStore settings = SettingsStore.get(this);

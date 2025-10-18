@@ -114,4 +114,6 @@
     <string name="sms_goal_reached">Goal reached! Current weight: %1$.1f</string>
     <string name="sms_failed">Couldn’t send SMS: %1$s</string>
     <string name="sms_error">Unable to send SMS: %s</string>
+    <string name="starting_goal_weight">Starting goal weight</string>
+    <string name="target_goal_weight">Target goal weight</string>
 </resources>

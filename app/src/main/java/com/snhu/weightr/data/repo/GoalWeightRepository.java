@@ -35,6 +35,13 @@ public final class GoalWeightRepository {
         });
     }
 
+    public void deleteGoal(@NonNull Long userId, @Nullable Runnable callback) {
+        DbExecutor.get().execute(() -> {
+            goalWeightDao.deleteForUser(userId);
+            if (callback != null) callback.run();
+        });
+    }
+
     /**
      * Retrieves the goal weight for a user.
      *

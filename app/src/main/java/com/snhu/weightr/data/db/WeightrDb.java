@@ -28,6 +28,7 @@ public abstract class WeightrDb extends RoomDatabase {
 
     private static volatile WeightrDb instance;
 
+    // Get or create a singleton instance of the database
     @NonNull
     public static WeightrDb get(@NonNull final Context context) {
         WeightrDb db = instance;

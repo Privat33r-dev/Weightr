@@ -44,11 +44,9 @@
                     android:id="@+id/current_weight_value"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
                     android:text="@string/placeholder_weight"
-                    android:textAppearance="?attr/textAppearanceHeadlineLarge"
+                    android:textAppearance="?attr/textAppearanceHeadlineLargeEmphasized"
                     android:textColor="?attr/colorOnSurfaceVariant"
-                    android:textStyle="bold"
                     tools:text="180.5 lbs" />
 
                 <TextView
@@ -60,16 +58,50 @@
                     android:textAppearance="?attr/textAppearanceHeadlineSmall"
                     android:textColor="?attr/colorOnSurface" />
 
-                <TextView
-                    android:id="@+id/goal_weight_value"
-                    android:layout_width="wrap_content"
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/placeholder_goal"
-                    android:textAppearance="?attr/textAppearanceHeadlineLarge"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:textStyle="bold"
-                    tools:text="150.0 lbs" />
+                    android:paddingBottom="8dp">
+
+                    <TextView
+                        android:id="@+id/goal_weight_start_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:text=""
+                        android:textAppearance="?attr/textAppearanceHeadlineSmallEmphasized"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:contentDescription="@string/starting_goal_weight"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        tools:text="200.0 lbs" />
+
+                    <ImageView
+                        android:id="@+id/goal_weight_icon"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/ic_goal_arrow"
+                        android:paddingHorizontal="4dp"
+                        app:tint="?attr/colorOnSurfaceVariant"
+                        app:layout_constraintBottom_toBottomOf="@id/goal_weight_start_value"
+                        app:layout_constraintTop_toTopOf="@id/goal_weight_start_value"
+                        app:layout_constraintStart_toEndOf="@id/goal_weight_start_value"
+                        app:layout_constraintEnd_toStartOf="@id/goal_weight_value" />
+
+                    <TextView
+                        android:id="@+id/goal_weight_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/placeholder_goal"
+                        android:textAppearance="?attr/textAppearanceHeadlineLarge"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textStyle="bold"
+                        android:contentDescription="@string/target_goal_weight"
+                        app:layout_constraintBaseline_toBaselineOf="@id/goal_weight_start_value"
+                        app:layout_constraintStart_toEndOf="@id/goal_weight_icon"
+                        tools:text="150.0 lbs" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
 
                 <com.google.android.material.progressindicator.LinearProgressIndicator
                     android:id="@+id/progress_bar"

@@ -53,6 +53,10 @@ public final class MainFragment extends Fragment {
 
         // Observe goal start weight
         viewModel.getGoalStartWeight().observe(getViewLifecycleOwner(), goal -> {
+            binding.goalWeightStartValue.setText(goal != null
+                    ? getString(R.string.weight_format, goal)
+                    : "");
+            binding.goalWeightIcon.setVisibility(goal != null ? View.VISIBLE : View.GONE);
             updateProgress();
         });
 

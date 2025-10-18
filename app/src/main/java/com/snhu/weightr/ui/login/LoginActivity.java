@@ -87,7 +87,11 @@ public final class LoginActivity extends AppCompatActivity {
                 return;
             }
             if (result.getSuccess() != null) {
-                onAuthSuccess();
+                try {
+                    onAuthSuccess();
+                } catch (IllegalStateException e) {
+                    Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -189,12 +193,11 @@ public final class LoginActivity extends AppCompatActivity {
     }
 
 
-    private void onAuthSuccess() {
+    private void onAuthSuccess() throws IllegalStateException {
         setResult(Activity.RESULT_OK);
         Toast.makeText(this, R.string.welcome, Toast.LENGTH_SHORT).show();
 
         LoginResult tmp = loginViewModel.getLoginResult().getValue();
-        // TODO: better handling
         if (tmp == null) throw new IllegalStateException("Authorized, but unable to fetch user");
         LoggedInUser user = tmp.getSuccess();
         if (user == null) throw new IllegalStateException("Authorized, but unable to fetch user");

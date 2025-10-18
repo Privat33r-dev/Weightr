@@ -1,6 +1,7 @@
 package com.snhu.weightr.ui.viewmodel;
 
 import android.content.Context;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
@@ -23,6 +24,8 @@ public class MainViewModel extends ViewModel {
     private final MutableLiveData<Double> goalStartWeight = new MutableLiveData<>();
     private final MutableLiveData<Long> userId = new MutableLiveData<>(-2L);
     private final MutableLiveData<String> userName = new MutableLiveData<>("");
+
+    private static final String TAG = MainViewModel.class.getName();
 
     @Nullable
     private DailyWeightRepository weightRepository;
@@ -52,8 +55,8 @@ public class MainViewModel extends ViewModel {
         if (goalWeightRepository == null ||
                 weightRepository == null || userId.getValue() == null ||
                 userId.getValue() < 0) {
-            currentWeight.setValue(null);
-            goalWeight.setValue(null);
+            currentWeight.postValue(null);
+            goalWeight.postValue(null);
             return;
         }
 
@@ -73,19 +76,37 @@ public class MainViewModel extends ViewModel {
     }
 
     /**
-     * Sets the goal weight for the user.
+     * Sets the goal weight for current user.
      */
     public void setGoalWeight(double goal) {
         Double goalStart = currentWeight.getValue();
         long uid = userId.getValue();
         if (goalWeightRepository == null || uid == -1) {
-            // TODO: graceful exception handling
+            Log.e(TAG, "resetGoalWeight: no goalWeightRepository or uid");
             return;
         }
 
         goalWeightRepository.setGoal(userId.getValue(), goal, goalStart, () -> {
             goalWeight.postValue(goal);
             goalStartWeight.postValue(goalStart);
+        });
+    }
+
+    /**
+     * Resets the goal weight for current user.
+     */
+    public void deleteGoalWeight() {
+        long uid = userId.getValue();
+        if (goalWeightRepository == null || uid == -1) {
+            Log.e(TAG, "resetGoalWeight: no goalWeightRepository or uid");
+            goalWeight.setValue(null);
+            goalStartWeight.setValue(null);
+            return;
+        }
+
+        goalWeightRepository.deleteGoal(userId.getValue(), () -> {
+            goalWeight.postValue(null);
+            goalStartWeight.postValue(null);
         });
     }
 
