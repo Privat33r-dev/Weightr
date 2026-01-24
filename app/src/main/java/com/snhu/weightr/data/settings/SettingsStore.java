@@ -10,7 +10,6 @@ import com.snhu.weightr.data.session.SessionStore;
 // Wrapper over SharedPreferences to store app settings.
 public final class SettingsStore {
     private static final String PREF = "settings";
-    private static final String KEY_SMS_ENABLED = "sms_enabled";
     private static final String KEY_LAST_CONGRATS_DATE = "last_congrats_date";
 
     private static volatile SettingsStore INSTANCE;
@@ -32,10 +31,4 @@ public final class SettingsStore {
         }
         return INSTANCE;
     }
-
-    public boolean isSmsEnabled() {
-        return prefs.getBoolean(KEY_SMS_ENABLED, false);
-    }
-
-
 }

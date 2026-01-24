@@ -21,11 +21,9 @@ import com.snhu.weightr.data.settings.SettingsStore;
 import com.snhu.weightr.databinding.ActivityMainBinding;
 import com.snhu.weightr.ui.dialogs.DialogGoalEntry;
 import com.snhu.weightr.ui.dialogs.DialogWeightEntry;
-import com.snhu.weightr.ui.dialogs.SmsDialog;
 import com.snhu.weightr.ui.login.LoginActivity;
 import com.snhu.weightr.ui.viewmodel.MainViewModel;
 import com.snhu.weightr.util.LocalNotifier;
-import com.snhu.weightr.util.SmsNotifier;
 import com.snhu.weightr.util.Utils;
 
 import java.util.Date;
@@ -57,18 +55,17 @@ public final class MainActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
         setSupportActionBar(binding.toolbar);
         getSupportFragmentManager().setFragmentResultListener(
-                "sms_perm_result",
+                "notifications_perm_result",
                 this,
                 (key, bundle) -> {
                     boolean granted = bundle.getBoolean("granted", false);
+                    if (granted) {
+                        Toast.makeText(this, "Thank you for your trust!", Toast.LENGTH_SHORT).show();
+                    }
                 }
         );
 
-        // On each start/login
-        // TODO: allow to stop (maybe 1-5 days inactive)
-        enableSmsIfNeeded();
         attachGoalObserver();
-
 
         NavHostFragment navHostFragment = (NavHostFragment)
                 getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment_content_main);
@@ -169,33 +166,15 @@ public final class MainActivity extends AppCompatActivity {
 
     private void congratulateUser(@NonNull Activity activity, double currentWeight) {
         // Compose the message
-        String body = activity.getString(R.string.sms_goal_reached, currentWeight);
-
-        // SmsNotifier returns true on send; false otherwise
-        SmsNotifier.sendAlert(activity, body,
-                (sent, err) -> {
-                    if (sent) return;
-
-                    Toast.makeText(activity, getString(R.string.sms_error, err), Toast.LENGTH_SHORT).show();
-
-                    // Fallback: local notification (works even if SMS is denied/unavailable)
-                    LocalNotifier.notify(
-                            activity,
-                            ID_CONGRATS,
-                            activity.getString(R.string.app_name),
-                            body
-                    );
-                }
+        String body = activity.getString(R.string.goal_reached, currentWeight);
+        // Local notification (fallbacks to Toast if lacks permissions for proper notification)
+        LocalNotifier.notify(
+                activity,
+                ID_CONGRATS,
+                activity.getString(R.string.app_name),
+                body
         );
     }
 
-
-    private void enableSmsIfNeeded() {
-        if (SettingsStore.get(this).isSmsEnabled()) return;
-
-        if (!Utils.hasAllSmsPermissions(this)) {
-            new SmsDialog().show(getSupportFragmentManager(), "SmsDialog");
-        }
-    }
 
 }

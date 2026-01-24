@@ -82,7 +82,7 @@ public final class HistoryFragment extends Fragment {
     }
 
     private void onDelete(@NonNull DailyWeightEntity item) {
-        dailyWeightRepository.deleteWeight(item.id, () -> requireActivity().runOnUiThread(()-> {
+        dailyWeightRepository.deleteWeight(item.id, () -> requireActivity().runOnUiThread(() -> {
             this.loadData();
             viewModel.refreshData();
         }));

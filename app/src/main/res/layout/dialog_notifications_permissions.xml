@@ -6,13 +6,13 @@
     android:layout_height="match_parent"
     android:background="?attr/colorSurface"
     android:padding="24dp"
-    tools:context=".ui.dialogs.SmsDialog">
+    tools:context=".ui.dialogs.NotificationsDialog">
 
     <TextView
         android:id="@+id/permissions_header"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/sms_permissions_title"
+        android:text="@string/notification_permissions_title"
         android:textAppearance="?attr/textAppearanceHeadlineSmall"
         android:textColor="?attr/colorOnSurface"
         app:layout_constraintEnd_toEndOf="parent"
@@ -24,7 +24,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="@string/sms_permissions_explanation"
+        android:text="@string/notification_permissions_explanation"
         android:textAlignment="textStart"
         android:textAppearance="?attr/textAppearanceBodyMedium"
         android:textColor="?attr/colorOnSurfaceVariant"
@@ -53,10 +53,10 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="@string/request_sms_permission"
+        android:text="@string/request_notification_permission"
         android:visibility="visible"
         android:nextFocusDown="@+id/continue_without_button"
-        android:contentDescription="@string/request_sms_permission_description"
+        android:contentDescription="@string/notification_permissions_explanation"
         app:cornerRadius="28dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

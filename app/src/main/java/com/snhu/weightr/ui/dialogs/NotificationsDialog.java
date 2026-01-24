@@ -21,7 +21,7 @@ import com.snhu.weightr.R;
 import java.util.ArrayList;
 import java.util.Map;
 
-public final class SmsDialog extends DialogFragment {
+public final class NotificationsDialog extends DialogFragment {
 
     private ActivityResultLauncher<String[]> requestPerms;
     private ArrayList<String> perms;
@@ -30,9 +30,9 @@ public final class SmsDialog extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
-        View root = getLayoutInflater().inflate(R.layout.dialog_sms, null, false);
+        View root = getLayoutInflater().inflate(R.layout.dialog_notifications_permissions, null, false);
 
-        setRequiredSmsPermsForDevice();
+        setRequiredPermsForDevice();
 
         // Register permission launcher
         requestPerms = registerForActivityResult(
@@ -84,23 +84,14 @@ public final class SmsDialog extends DialogFragment {
     private void sendResult(boolean granted) {
         Bundle b = new Bundle();
         b.putBoolean("granted", granted);
-        getParentFragmentManager().setFragmentResult("sms_perm_result", b);
+        getParentFragmentManager().setFragmentResult("notifications_perm_result", b);
     }
 
-    private void setRequiredSmsPermsForDevice() {
+    private void setRequiredPermsForDevice() {
         perms = new ArrayList<>();
-
-        perms.add(Manifest.permission.SEND_SMS);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             perms.add(Manifest.permission.POST_NOTIFICATIONS);
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            perms.add(Manifest.permission.READ_PHONE_NUMBERS);
-        } else {
-            // <26 fallback
-            perms.add(Manifest.permission.READ_PHONE_STATE);
         }
     }
 
