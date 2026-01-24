@@ -13,6 +13,7 @@ import com.snhu.weightr.data.db.entity.DailyWeightEntity;
 import com.snhu.weightr.data.repo.DailyWeightRepository;
 import com.snhu.weightr.data.repo.GoalWeightRepository;
 import com.snhu.weightr.data.session.SessionStore;
+import com.snhu.weightr.util.Utils;
 
 import java.util.List;
 
@@ -81,7 +82,7 @@ public class MainViewModel extends ViewModel {
     public void setGoalWeight(double goal) {
         double goalStart = currentWeight.getValue() != null ? currentWeight.getValue() : -1.0;
         long uid = safeUnboxLong(userId);
-        if (goalWeightRepository == null || uid == -1 || goalStart == -1.0) {
+        if (goalWeightRepository == null || uid == -1 || Utils.approximatelyEqual(goalStart, -1.0)) {
             Log.e(TAG, "resetGoalWeight: no goalWeightRepository or uid or invalid goalStart");
             return;
         }

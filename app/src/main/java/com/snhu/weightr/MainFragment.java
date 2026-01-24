@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.snhu.weightr.databinding.FragmentMainBinding;
 import com.snhu.weightr.ui.dialogs.DialogGoalEntry;
 import com.snhu.weightr.ui.viewmodel.MainViewModel;
+import com.snhu.weightr.util.Utils;
 
 public final class MainFragment extends Fragment {
 
@@ -78,7 +79,7 @@ public final class MainFragment extends Fragment {
         Double goalWeight = viewModel.getGoalWeight().getValue();
         Double start = viewModel.getGoalStartWeight().getValue(); // Starting weight from goal
         Double current = viewModel.getCurrentWeight().getValue();
-        if (current != null && goalWeight != null && start != null && goalWeight != start) {
+        if (current != null && goalWeight != null && start != null && !Utils.approximatelyEqual(start, goalWeight)) {
             double progress = ((current - start) / (goalWeight - start)) * 100;
             binding.progressBar.setVisibility(View.VISIBLE);
             binding.progressText.setVisibility(View.VISIBLE);

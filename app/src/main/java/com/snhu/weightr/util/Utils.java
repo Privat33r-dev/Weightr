@@ -22,6 +22,9 @@ import java.util.TimeZone;
 public final class Utils {
     private Utils() {} // Prevent instantiation
 
+    public static final double MAX_ALLOWED_WEIGHT = 2000;
+    private final static double TOLERANCE = 1e-9;
+
     /**
      * Safely extracts trimmed text from an {@link Editable}.
      * Returns an empty string if the input is {@code null}.
@@ -61,5 +64,10 @@ public final class Utils {
         }
         return true;
     }
+
+    public static boolean approximatelyEqual(double a, double b) {
+        return Math.abs(a-b) < TOLERANCE;
+    }
+
 
 }

@@ -105,7 +105,4 @@ public final class SmsDialog extends DialogFragment {
     }
 
 
-    public static SmsDialog newInstance() {
-        return new SmsDialog();
-    }
 }
