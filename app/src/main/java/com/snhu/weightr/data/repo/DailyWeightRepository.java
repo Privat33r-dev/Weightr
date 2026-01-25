@@ -114,16 +114,19 @@ public final class DailyWeightRepository {
     }
 
     /**
-     * Retrieves the latest weight entry for a user asynchronously.
+     * Retrieves the latest 2 weight entries for a user.
      *
      * @param userId   ID of the user
-     * @param callback Callback invoked with the latest DailyWeightEntity (or null if none)
+     * @param callback Callback invoked with the List\<DailyWeightEntity\> containing 2 latest entities
      */
-    public void getLatestWeight(@NonNull Long userId, @NonNull Consumer<DailyWeightEntity> callback) {
+    public void get2LatestWeights(
+            @NonNull Long userId,
+            @NonNull Consumer<List<DailyWeightEntity>> callback
+    ) {
         DbExecutor.get().execute(() -> {
-            List<DailyWeightEntity> list = weightDao.listForUser(userId);
-            DailyWeightEntity latest = list.isEmpty() ? null : list.get(0);
-            callback.accept(latest);
+            List<DailyWeightEntity> list = weightDao.listLast2ForUser(userId);
+            callback.accept(list);
         });
     }
+
 }

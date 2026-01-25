@@ -12,6 +12,7 @@ lifecycleViewmodelKtx = "2.10.0"
 navigationFragment = "2.9.6"
 navigationUi = "2.9.6"
 room = "2.8.4"
+mpandroidchart = "3.1.0"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -28,6 +29,7 @@ navigation-ui = { group = "androidx.navigation", name = "navigation-ui", version
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+mpandroidchart = { group = "com.github.PhilJay", name = "MPAndroidChart", version.ref = "mpandroidchart" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
