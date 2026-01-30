@@ -74,7 +74,7 @@ public class DialogGoalEntry extends DialogFragment {
     private boolean isValidWeight(String weightStr) {
         try {
             double weight = Double.parseDouble(weightStr);
-            return weight > 0 && weight < 1000;
+            return weight > 0 && weight < Utils.MAX_ALLOWED_WEIGHT;
         } catch (NumberFormatException e) {
             return false;
         }

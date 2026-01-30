@@ -9,16 +9,12 @@ import com.snhu.weightr.R;
 import com.snhu.weightr.data.model.LoggedInUser;
 import com.snhu.weightr.data.repo.UserRepository;
 
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-
 public final class LoginViewModel extends ViewModel {
 
     private final MutableLiveData<LoginFormState> loginFormState = new MutableLiveData<>();
     private final MutableLiveData<LoginResult> loginResult = new MutableLiveData<>();
 
     private final UserRepository userRepository;
-    private final Executor io = Executors.newSingleThreadExecutor();
 
     public LoginViewModel(@NonNull UserRepository userRepository) {
         this.userRepository = userRepository;

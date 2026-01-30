@@ -20,6 +20,9 @@ public interface DailyWeightDao {
     @Query("SELECT * FROM daily_weights WHERE user_id = :userId ORDER BY date DESC")
     List<DailyWeightEntity> listForUser(long userId);
 
+    @Query("SELECT * FROM daily_weights WHERE user_id = :userId ORDER BY date DESC LIMIT 2")
+    List<DailyWeightEntity> listLast2ForUser(long userId);
+
     @Query("SELECT * FROM daily_weights WHERE id = :id LIMIT 1")
     DailyWeightEntity getById(long id);
 

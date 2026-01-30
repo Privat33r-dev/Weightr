@@ -8,7 +8,6 @@
     android:paddingEnd="24dp"
     android:paddingTop="20dp"
     android:paddingBottom="8dp"
-    android:background="?attr/colorSurface"
     tools:context=".ui.dialogs.DialogWeightEntry">
 
     <!-- Weight input -->

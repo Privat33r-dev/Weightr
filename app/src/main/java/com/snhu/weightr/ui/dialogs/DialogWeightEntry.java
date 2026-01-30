@@ -29,6 +29,7 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 import com.google.android.material.datepicker.MaterialDatePicker;
+import com.snhu.weightr.util.Utils;
 
 public final class DialogWeightEntry extends DialogFragment {
 
@@ -171,7 +172,7 @@ public final class DialogWeightEntry extends DialogFragment {
     private boolean isValidWeight(String s) {
         try {
             double w = Double.parseDouble(s);
-            return w > 0 && w < 2000;
+            return w > 0 && w < Utils.MAX_ALLOWED_WEIGHT;
         } catch (NumberFormatException e) {
             return false;
         }

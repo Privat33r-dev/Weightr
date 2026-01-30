@@ -18,7 +18,7 @@ public final class LocalNotifier {
     private static final String CH_ID = "alerts";
 
     public static void ensureChannel(@NonNull Context ctx) {
-        if (android.os.Build.VERSION.SDK_INT >= 26) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             NotificationChannel ch = new NotificationChannel(CH_ID, "Alerts",
                     NotificationManager.IMPORTANCE_DEFAULT);
             NotificationManager nm = ctx.getSystemService(NotificationManager.class);

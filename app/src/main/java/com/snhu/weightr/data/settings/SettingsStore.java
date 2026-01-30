@@ -4,23 +4,16 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.snhu.weightr.data.session.SessionStore;
 
 // Wrapper over SharedPreferences to store app settings.
 public final class SettingsStore {
     private static final String PREF = "settings";
-    private static final String KEY_SMS_ENABLED = "sms_enabled";
     private static final String KEY_LAST_CONGRATS_DATE = "last_congrats_date";
 
     private static volatile SettingsStore INSTANCE;
     private final SharedPreferences prefs;
-
-    @Nullable
-    public String lastCongratsDate() {
-        return prefs.getString(KEY_LAST_CONGRATS_DATE, null);
-    }
 
     public void setLastCongratsDate(@NonNull String iso) {
         prefs.edit().putString(KEY_LAST_CONGRATS_DATE, iso).apply();
@@ -38,13 +31,4 @@ public final class SettingsStore {
         }
         return INSTANCE;
     }
-
-    public boolean isSmsEnabled() {
-        return prefs.getBoolean(KEY_SMS_ENABLED, false);
-    }
-
-    public void setSmsEnabled(boolean enabled) {
-        prefs.edit().putBoolean(KEY_SMS_ENABLED, enabled).apply();
-    }
-
 }

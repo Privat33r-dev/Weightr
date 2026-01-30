@@ -22,6 +22,7 @@ import com.snhu.weightr.data.repo.DailyWeightRepository;
 import com.snhu.weightr.data.session.SessionStore;
 import com.snhu.weightr.ui.dialogs.DialogWeightEntry;
 import com.snhu.weightr.ui.viewmodel.MainViewModel;
+import com.snhu.weightr.util.Utils;
 
 import java.util.Locale;
 import java.util.Objects;
@@ -81,10 +82,10 @@ public final class HistoryFragment extends Fragment {
     }
 
     private void onDelete(@NonNull DailyWeightEntity item) {
-        dailyWeightRepository.deleteWeight(item.id, () -> requireActivity().runOnUiThread(()-> {
+        dailyWeightRepository.deleteWeight(item.id, () -> requireActivity().runOnUiThread(() -> {
             this.loadData();
             viewModel.refreshData();
-        }));;
+        }));
     }
 
     private void onEdit(@NonNull DailyWeightEntity item) {
@@ -127,7 +128,7 @@ public final class HistoryFragment extends Fragment {
         }
 
         static final DiffUtil.ItemCallback<DailyWeightEntity> DIFF =
-                new DiffUtil.ItemCallback<DailyWeightEntity>() {
+                new DiffUtil.ItemCallback<>() {
                     @Override
                     public boolean areItemsTheSame(@NonNull DailyWeightEntity a,
                                                    @NonNull DailyWeightEntity b) {
@@ -137,7 +138,7 @@ public final class HistoryFragment extends Fragment {
                     @Override
                     public boolean areContentsTheSame(@NonNull DailyWeightEntity a,
                                                       @NonNull DailyWeightEntity b) {
-                        return a.weight == b.weight
+                        return Utils.approximatelyEqual(a.weight, b.weight)
                                 && Objects.equals(a.date, b.date)
                                 && Objects.equals(a.userId, b.userId);
                     }
