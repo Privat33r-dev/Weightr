@@ -2,13 +2,13 @@ package com.snhu.weightr.data.repo;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.lifecycle.LiveData;
 
 import com.snhu.weightr.data.db.dao.DailyWeightDao;
 import com.snhu.weightr.data.db.entity.DailyWeightEntity;
 import com.snhu.weightr.data.repo.util.DbExecutor;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * Manages weight data operations.
@@ -54,7 +54,7 @@ public final class DailyWeightRepository {
                 e.userId = userId;
                 e.weight = weight;
                 e.date = date;
-                weightDao.insert(e); // will insert or update; no exception
+                weightDao.insert(e); // will fail if entry exists
                 if (onSuccess != null) onSuccess.run();
             } catch (android.database.sqlite.SQLiteConstraintException err) {
                 if (onError != null) onError.onError(
@@ -67,18 +67,14 @@ public final class DailyWeightRepository {
     }
 
     /**
-     * Retrieves all weight entries for a user, sorted by date descending.
+     * Returns a LiveData of all weight entries for a user, sorted by date descending.
      *
-     * @param userId   ID of the user
-     * @param callback Callback invoked on completion with the list as a parm (may be empty)
+     * @param userId ID of the user
+     * @return LiveData containing the current list (may be empty)
      */
-    public void listWeightsForUser(@NonNull Long userId, @NonNull Consumer<List<DailyWeightEntity>> callback) {
-        DbExecutor.get().execute(() -> {
-            List<DailyWeightEntity> list = weightDao.listForUser(userId);
-            callback.accept(list);
-        });
+    public LiveData<List<DailyWeightEntity>> getHistoryLive(@NonNull Long userId) {
+        return weightDao.listForUser(userId);
     }
-
 
     /**
      * Updates the weight value for a specific entry.
@@ -101,32 +97,13 @@ public final class DailyWeightRepository {
     }
 
     /**
-     * Deletes a specific weight entry.
+     * Deletes specified weight entries.
      *
-     * @param weight   Weight entry to delete
-     * @param callback Optional callback for completion (default: no-op)
+     * @param weights   Weight entries to delete
      */
-    public void deleteWeight(@NonNull DailyWeightEntity weight, @Nullable Runnable callback) {
+    public void deleteWeights(@NonNull DailyWeightEntity... weights) {
         DbExecutor.get().execute(() -> {
-            weightDao.deleteWeights(weight);
-            if (callback != null) callback.run();
+            weightDao.deleteWeights(weights);
         });
     }
-
-    /**
-     * Retrieves the latest 2 weight entries for a user.
-     *
-     * @param userId   ID of the user
-     * @param callback Callback invoked with the List\<DailyWeightEntity\> containing 2 latest entities
-     */
-    public void get2LatestWeights(
-            @NonNull Long userId,
-            @NonNull Consumer<List<DailyWeightEntity>> callback
-    ) {
-        DbExecutor.get().execute(() -> {
-            List<DailyWeightEntity> list = weightDao.listLast2ForUser(userId);
-            callback.accept(list);
-        });
-    }
-
 }

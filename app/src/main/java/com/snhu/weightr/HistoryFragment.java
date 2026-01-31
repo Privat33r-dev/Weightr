@@ -107,10 +107,6 @@ public final class HistoryFragment extends Fragment {
         sortDescending = SettingsStore.get(requireContext()).isSortDescending();
         viewModel.setSortDescending(sortDescending);
 
-        getParentFragmentManager().setFragmentResultListener(
-                "weight_saved", getViewLifecycleOwner(), (key, bundle) -> viewModel.refreshData()
-        );
-
         addMenu();
     }
 

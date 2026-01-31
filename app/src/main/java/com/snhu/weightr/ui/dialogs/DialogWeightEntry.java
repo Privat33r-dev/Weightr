@@ -130,7 +130,6 @@ public final class DialogWeightEntry extends DialogFragment {
     private void create(long uid, double weight, String dateIso) {
         dailyWeightRepository.logWeight(uid, weight, dateIso,
                 () -> requireActivity().runOnUiThread(() -> {
-                    viewModel.refreshData();
                     Toast.makeText(requireContext(), R.string.weight_saved, Toast.LENGTH_SHORT).show();
                     dismiss();
                 }),
@@ -144,7 +143,6 @@ public final class DialogWeightEntry extends DialogFragment {
     private void edit(long uid, double weight, String dateIso) {
         dailyWeightRepository.updateWeightById(editId, weight, dateIso,
                 () -> requireActivity().runOnUiThread(() -> {
-                    viewModel.refreshData();
                     Toast.makeText(requireContext(), R.string.weight_saved, Toast.LENGTH_SHORT).show();
                     dismiss();
                 }));

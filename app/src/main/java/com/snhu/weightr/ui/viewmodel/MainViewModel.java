@@ -8,12 +8,14 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
 import androidx.lifecycle.ViewModel;
 
 import com.snhu.weightr.data.db.WeightrDb;
 import com.snhu.weightr.data.db.entity.DailyWeightEntity;
+import com.snhu.weightr.data.db.entity.GoalWeightEntity;
 import com.snhu.weightr.data.repo.DailyWeightRepository;
 import com.snhu.weightr.data.repo.GoalWeightRepository;
 import com.snhu.weightr.data.session.SessionStore;
@@ -46,28 +48,24 @@ public class MainViewModel extends ViewModel {
 
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 
-    private final MutableLiveData<List<DailyWeightEntity>> rawHistory = new MutableLiveData<>();
+    private LiveData<List<DailyWeightEntity>> rawHistoryLive; // DESC from DB
+    private LiveData<GoalWeightEntity> goalEntityLive;
+
     private final MutableLiveData<Boolean> sortDescending = new MutableLiveData<>(true);
-    private final LiveData<List<DailyWeightEntity>> sortedHistory = Transformations.switchMap(sortDescending, desc ->
-            Transformations.map(rawHistory, list -> {
-                if (desc) {
-                    // We get pre-sorted (DESC) values from the DB; no need for sorting
-                    return list;
-                } else {
-                    List<DailyWeightEntity> copy = new ArrayList<>(list);
-                    sortByDate(copy, desc);
-                    return copy;
-                }
-            })
-    );
-    private final MutableLiveData<Double> currentWeight = new MutableLiveData<>();
-    private final MutableLiveData<Double> previousWeight = new MutableLiveData<>();
-    private final MutableLiveData<Double> goalWeight = new MutableLiveData<>();
-    private final MutableLiveData<Double> goalStartWeight = new MutableLiveData<>();
+
+    private LiveData<List<DailyWeightEntity>> sortedHistory;
+
+    private LiveData<Double> currentWeight;
+
+    // Derived from goalEntityLive
+    private LiveData<Double> goalWeight;
+    private LiveData<Double> goalStartWeight;
+
+    // Mediator is needed for consistent updates (analogous to observer)
+    private final MediatorLiveData<String> motivationText = new MediatorLiveData<>();
+
     private final MutableLiveData<Long> userId = new MutableLiveData<>(-2L);
     private final MutableLiveData<String> userName = new MutableLiveData<>("");
-    private final MutableLiveData<String> motivationText = new MutableLiveData<>("");
-
 
     private static final String TAG = MainViewModel.class.getName();
 
@@ -76,9 +74,6 @@ public class MainViewModel extends ViewModel {
     @Nullable
     private GoalWeightRepository goalWeightRepository;
 
-    /**
-     * Initializes the ViewModel. Call this once from MainActivity after creation.
-     */
     public void init(Context context) {
         if (weightRepository != null || goalWeightRepository != null) return;
 
@@ -92,84 +87,108 @@ public class MainViewModel extends ViewModel {
         // Load initial sort preference
         sortDescending.setValue(SettingsStore.get(appCtx).isSortDescending());
 
-        refreshData();
+        Long uid = userId.getValue();
+        if (uid != null && uid > 0) {
+            rawHistoryLive = weightRepository.getHistoryLive(uid);
+            goalEntityLive = goalWeightRepository.getGoalWeightLive(uid);
+        } else {
+            rawHistoryLive = new MutableLiveData<>(Collections.emptyList());
+            goalEntityLive = new MutableLiveData<>(null);
+        }
+
+        // Create derived LiveData after sources are set
+        sortedHistory = Transformations.switchMap(sortDescending, desc ->
+                Transformations.map(rawHistoryLive, list -> {
+                    if (list == null) return Collections.emptyList();
+                    if (desc) {
+                        return list; // Raw DESC from DB
+                    } else {
+                        List<DailyWeightEntity> copy = new ArrayList<>(list);
+                        sortByDate(copy, desc);
+                        return copy;
+                    }
+                })
+        );
+
+        currentWeight = Transformations.map(rawHistoryLive, list ->
+                list.isEmpty() ? null : list.get(0).weight
+        );
+
+        goalWeight = Transformations.map(goalEntityLive, entity ->
+                entity != null ? entity.currentGoal : null
+        );
+
+        goalStartWeight = Transformations.map(goalEntityLive, entity ->
+                entity != null ? entity.goalStart : null
+        );
+
+        motivationText.addSource(rawHistoryLive, historyList -> updateMotivation(historyList, goalEntityLive.getValue()));
+        motivationText.addSource(goalEntityLive, goalEntity -> updateMotivation(rawHistoryLive.getValue(), goalEntity));
     }
 
-    /**
-     * Refreshes the data (runs off main thread).
-     */
-    public void refreshData() {
-        Long uid = userId.getValue();
-        if (goalWeightRepository == null || weightRepository == null || uid == null || uid < 0) {
-            currentWeight.postValue(null);
-            previousWeight.postValue(null);
-            goalWeight.postValue(null);
-            goalStartWeight.postValue(null);
-            motivationText.postValue("");
+    private void updateMotivation(List<DailyWeightEntity> historyList, GoalWeightEntity goalEntity) {
+        if (historyList == null || historyList.size() < 2 || goalEntity == null || goalEntity.currentGoal <= 0) {
+            motivationText.setValue("");
             return;
         }
 
-        goalWeightRepository.getGoalWeight(uid, goal -> {
-            Double goalWeight = (goal != null) ? goal.currentGoal : null;
-            Double goalStartWeight = (goal != null) ? goal.goalStart : null;
-            this.goalWeight.postValue(goalWeight);
-            this.goalStartWeight.postValue(goalStartWeight);
+        double curr = historyList.get(0).weight;
+        double prev = historyList.get(1).weight;
+        double goal = goalEntity.currentGoal;
 
-            weightRepository.get2LatestWeights(uid, latest2 -> {
-                int size = latest2 == null ? 0 : latest2.size();
+        String motivationMessage = computeMotivation(curr, prev, goal);
 
-                DailyWeightEntity latest = size > 0 ? latest2.get(0) : null;
-                DailyWeightEntity previous = size > 1 ? latest2.get(1) : null;
-
-                currentWeight.postValue(latest != null ? latest.weight : null);
-                previousWeight.postValue(previous != null ? previous.weight : null);
-
-                if (latest == null || previous == null || goalWeight == null || goalWeight <= 0) {
-                    motivationText.postValue("");
-                    return;
-                }
-
-                String msg = computeMotivation(latest.weight, previous.weight, goalWeight);
-                motivationText.postValue(msg);
-            });
-        });
-
-        loadHistory();
+        motivationText.setValue(motivationMessage);
     }
 
-    /**
-     * Sets the goal weight for current user.
-     */
+    @NonNull
+    private String computeMotivation(double curr, double prev, double goal) {
+        double prevDist = Math.abs(prev - goal);
+        double currDist = Math.abs(curr - goal);
+
+        // >0 means improved (closer)
+        double progressDelta = prevDist - currDist;
+
+        // Plateau
+        if (approximatelyEqual(progressDelta, 0)) {
+            return "Plateaus happen. Keep going, as it's just a normal part of the process.";
+        }
+
+        // Strayed from the goal
+        if (progressDelta < 0) {
+            return "It's okay to slip sometimes. Keep going! You've got this!";
+        }
+
+        // Got closer to the goal
+        // 5 pounds is a significant change. We assume that users know what they are doing.
+        if (progressDelta >= 5.0) {
+            return "Huge progress! You're moving fast towards your goal. Keep it up!";
+        }
+        if (progressDelta >= 1.0) {
+            return "Nice progress. Keep it up!";
+        }
+        return "Good direction. Small steps add up.";
+    }
+
     public void setGoalWeight(double goal) {
         double goalStart = currentWeight.getValue() != null ? currentWeight.getValue() : -1.0;
         Long uid = userId.getValue();
         if (goalWeightRepository == null || uid == null || approximatelyEqual(goalStart, -1.0)) {
-            Log.e(TAG, "resetGoalWeight: no goalWeightRepository or uid or invalid goalStart");
+            Log.e(TAG, "setGoalWeight: invalid state");
             return;
         }
 
-        goalWeightRepository.setGoal(uid, goal, goalStart, () -> {
-            goalWeight.postValue(goal);
-            goalStartWeight.postValue(goalStart);
-        });
+        goalWeightRepository.setGoal(uid, goal, goalStart);
     }
 
-    /**
-     * Resets the goal weight for current user.
-     */
     public void deleteGoalWeight() {
         Long uid = userId.getValue();
         if (goalWeightRepository == null || uid == null) {
-            Log.e(TAG, "resetGoalWeight: no goalWeightRepository or uid");
-            goalWeight.setValue(null);
-            goalStartWeight.setValue(null);
+            Log.e(TAG, "deleteGoalWeight: invalid state");
             return;
         }
 
-        goalWeightRepository.deleteGoal(uid, () -> {
-            goalWeight.postValue(null);
-            goalStartWeight.postValue(null);
-        });
+        goalWeightRepository.deleteGoal(uid);
     }
 
     public LiveData<Double> getCurrentWeight() {
@@ -205,30 +224,12 @@ public class MainViewModel extends ViewModel {
             Log.e(TAG, "deleteWeight: no weightRepository");
             return;
         }
-        weightRepository.deleteWeight(item, () -> {
-            List<DailyWeightEntity> currentRaw = rawHistory.getValue();
-            if (currentRaw != null) {
-                List<DailyWeightEntity> updatedRaw = new ArrayList<>(currentRaw);
-                updatedRaw.remove(item);
-                rawHistory.postValue(updatedRaw);
-            }
-        });
+        weightRepository.deleteWeights(item);
     }
 
-    public void loadHistory() {
-        Long userIdValue = userId.getValue();
-        if (weightRepository == null || userIdValue == null) {
-            rawHistory.setValue(java.util.Collections.emptyList());
-            return;
-        }
-        weightRepository.listWeightsForUser(userIdValue, rawHistory::postValue);
-    }
-
-
-    // Provides transformed historical data in a format suitable for use in chart
     public LiveData<List<WeightChartPoint>> getWeightPoints() {
         final long msPerDay = 86400000L;
-        return Transformations.map(getHistory(), history -> {
+        return Transformations.map(rawHistoryLive, history -> {
             if (history == null) return Collections.emptyList();
             List<WeightChartPoint> out = new ArrayList<>(history.size());
             for (DailyWeightEntity e : history) {
@@ -244,36 +245,6 @@ public class MainViewModel extends ViewModel {
             return out;
         });
     }
-
-
-    private String computeMotivation(double curr, double prev, double goal) {
-        double prevDist = Math.abs(prev - goal);
-        double currDist = Math.abs(curr - goal);
-
-        // >0 means improved (closer)
-        double progressDelta = prevDist - currDist;
-
-        // Plateau
-        if (approximatelyEqual(progressDelta, 0)) {
-            return "Plateaus happen. Keep going, as it's just a normal part of the process.";
-        }
-
-        // Strayed from the goal
-        if (progressDelta < 0) {
-            return "It's okay to slip sometimes. Keep going! You've got this!";
-        }
-
-        // Got closer to the goal
-        // 5 pounds is a significant change. We assume that users know what they are doing.
-        if (progressDelta >= 5.0) {
-            return "Huge progress! You're moving fast towards your goal. Keep it up!";
-        }
-        if (progressDelta >= 1.0) {
-            return "Nice progress. Keep it up!";
-        }
-        return "Good direction. Small steps add up.";
-    }
-
 
     /**
      * Sort the list by date in-place using a Quicksort algorithm.
