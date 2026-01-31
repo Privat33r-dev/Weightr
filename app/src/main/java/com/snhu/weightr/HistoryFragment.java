@@ -1,25 +1,30 @@
 package com.snhu.weightr;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
+import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.snhu.weightr.data.db.WeightrDb;
-import com.snhu.weightr.data.db.dao.DailyWeightDao;
 import com.snhu.weightr.data.db.entity.DailyWeightEntity;
-import com.snhu.weightr.data.repo.DailyWeightRepository;
 import com.snhu.weightr.data.session.SessionStore;
+import com.snhu.weightr.data.settings.SettingsStore;
 import com.snhu.weightr.ui.dialogs.DialogWeightEntry;
 import com.snhu.weightr.ui.viewmodel.MainViewModel;
 import com.snhu.weightr.util.Utils;
@@ -29,11 +34,12 @@ import java.util.Objects;
 
 public final class HistoryFragment extends Fragment {
 
+    private static final String TAG = "HistoryFragment";
     private RecyclerView recyclerView;
     private HistoryAdapter adapter;
-    private DailyWeightRepository dailyWeightRepository;
     private MainViewModel viewModel;
     private Long userId;
+    private boolean sortDescending;
 
     @Nullable
     @Override
@@ -41,6 +47,39 @@ public final class HistoryFragment extends Fragment {
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_history, container, false);
+    }
+
+    private void addMenu() {
+        requireActivity().addMenuProvider(new MenuProvider() {
+            @Override
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+                menuInflater.inflate(R.menu.sort_menu, menu);
+
+                // Update main sort icon
+                MenuItem sortItem = menu.findItem(R.id.action_sort);
+                if (sortItem != null) {
+                    sortItem.setIcon(ContextCompat.getDrawable(requireContext(),
+                            sortDescending ? R.drawable.ic_sort_descending : R.drawable.ic_sort_ascending));
+                }
+            }
+
+            @Override
+            public boolean onMenuItemSelected(@NonNull MenuItem item) {
+                int itemId = item.getItemId();
+                if (itemId != R.id.action_sort) {
+                    Log.e(TAG, "onMenuItemSelected: invalid itemId chosen" + itemId);
+                    return false;
+                }
+                // Toggle sort direction
+                sortDescending = !sortDescending;
+
+                // Save preference and refresh
+                SettingsStore.get(requireContext()).setSortDescending(sortDescending);
+                viewModel.setSortDescending(sortDescending);
+                requireActivity().invalidateMenu();
+                return true;
+            }
+        }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
     }
 
     @Override
@@ -51,9 +90,6 @@ public final class HistoryFragment extends Fragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new HistoryAdapter(this::onDelete, this::onEdit);
         recyclerView.setAdapter(adapter);
-
-        DailyWeightDao dao = WeightrDb.get(requireContext()).dailyWeightDao();
-        dailyWeightRepository = new DailyWeightRepository(dao);
 
         long uid = SessionStore.get(requireContext()).userId();
         userId = (uid > 0) ? uid : null;
@@ -67,25 +103,19 @@ public final class HistoryFragment extends Fragment {
         viewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         viewModel.getHistory().observe(getViewLifecycleOwner(), list -> adapter.submitList(list));
 
+        // Load sort preference
+        sortDescending = SettingsStore.get(requireContext()).isSortDescending();
+        viewModel.setSortDescending(sortDescending);
 
         getParentFragmentManager().setFragmentResultListener(
-                "weight_saved", getViewLifecycleOwner(), (key, bundle) -> loadData()
+                "weight_saved", getViewLifecycleOwner(), (key, bundle) -> viewModel.refreshData()
         );
 
-        loadData();
-    }
-
-    private void loadData() {
-        dailyWeightRepository.listWeightsForUser(userId, list ->
-                requireActivity().runOnUiThread(() -> adapter.submitList(list))
-        );
+        addMenu();
     }
 
     private void onDelete(@NonNull DailyWeightEntity item) {
-        dailyWeightRepository.deleteWeight(item.id, () -> requireActivity().runOnUiThread(() -> {
-            this.loadData();
-            viewModel.refreshData();
-        }));
+        viewModel.deleteWeight(item);
     }
 
     private void onEdit(@NonNull DailyWeightEntity item) {
@@ -157,7 +187,6 @@ public final class HistoryFragment extends Fragment {
                 weightTv = itemView.findViewById(R.id.weight_tv);
                 editBtn = itemView.findViewById(R.id.edit_btn);
                 deleteBtn = itemView.findViewById(R.id.delete_btn);
-//                editBtn = (eb instanceof android.widget.ImageButton) ? (android.widget.ImageButton) eb : null;
             }
 
             void bind(@NonNull DailyWeightEntity item,
@@ -172,6 +201,3 @@ public final class HistoryFragment extends Fragment {
         }
     }
 }
-
-
-

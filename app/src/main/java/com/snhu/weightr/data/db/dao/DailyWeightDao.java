@@ -1,6 +1,7 @@
 package com.snhu.weightr.data.db.dao;
 
 import androidx.room.Dao;
+import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
@@ -26,7 +27,7 @@ public interface DailyWeightDao {
     @Query("SELECT * FROM daily_weights WHERE id = :id LIMIT 1")
     DailyWeightEntity getById(long id);
 
-    @Query("DELETE FROM daily_weights WHERE id = :id")
-    void deleteById(long id);
+    @Delete
+    void deleteWeights(DailyWeightEntity... weights);
 
 }

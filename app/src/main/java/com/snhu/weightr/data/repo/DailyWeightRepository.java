@@ -103,12 +103,12 @@ public final class DailyWeightRepository {
     /**
      * Deletes a specific weight entry.
      *
-     * @param id       ID of the weight entry to delete
+     * @param weight   Weight entry to delete
      * @param callback Optional callback for completion (default: no-op)
      */
-    public void deleteWeight(@NonNull Long id, @Nullable Runnable callback) {
+    public void deleteWeight(@NonNull DailyWeightEntity weight, @Nullable Runnable callback) {
         DbExecutor.get().execute(() -> {
-            weightDao.deleteById(id);
+            weightDao.deleteWeights(weight);
             if (callback != null) callback.run();
         });
     }

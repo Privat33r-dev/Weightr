@@ -4,11 +4,14 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import androidx.core.view.MenuProvider;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -17,16 +20,12 @@ import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.snhu.weightr.data.session.SessionStore;
-import com.snhu.weightr.data.settings.SettingsStore;
 import com.snhu.weightr.databinding.ActivityMainBinding;
 import com.snhu.weightr.ui.dialogs.DialogGoalEntry;
 import com.snhu.weightr.ui.dialogs.DialogWeightEntry;
 import com.snhu.weightr.ui.login.LoginActivity;
 import com.snhu.weightr.ui.viewmodel.MainViewModel;
 import com.snhu.weightr.util.LocalNotifier;
-import com.snhu.weightr.util.Utils;
-
-import java.util.Date;
 
 
 public final class MainActivity extends AppCompatActivity {
@@ -92,29 +91,34 @@ public final class MainActivity extends AppCompatActivity {
             }
         });
 
-        binding.toolbar.setOnMenuItemClickListener(item -> {
-            int id = item.getItemId();
-
-            if (id == R.id.action_goal) {
-                showGoalWeightDialog();
-                return true;
-            } else if (id == R.id.action_logout) {
-                // Clear session and return to login
-                SessionStore.get(this).reset();
-                Intent i = new Intent(this, LoginActivity.class);
-                i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(i);
-                finish();
-                return true;
+        addMenuProvider(new MenuProvider() {
+            @Override
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
             }
 
-            return super.onOptionsItemSelected(item);
+            @Override
+            public boolean onMenuItemSelected(@NonNull MenuItem item) {
+                int id = item.getItemId();
+
+                if (id == R.id.action_goal) {
+                    showGoalWeightDialog();
+                    return true;
+                } else if (id == R.id.action_logout) {
+                    // Clear session and return to login
+                    SessionStore.get(getBaseContext()).reset();
+                    Intent i = new Intent(getBaseContext(), LoginActivity.class);
+                    i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(i);
+                    finish();
+                    return true;
+                }
+
+                return MainActivity.super.onOptionsItemSelected(item);
+            }
         });
 
         // Floating Action Button -> Log weight dialog
-        binding.fab.setOnClickListener(v -> {
-            showNewWeightDialog();
-        });
+        binding.fab.setOnClickListener(v -> showNewWeightDialog());
     }
 
     @Override
@@ -157,10 +161,6 @@ public final class MainActivity extends AppCompatActivity {
             congratulateUser(this, w);
             // Reset goal weight to avoid redundant notifications on each state update/activity load
             viewModel.deleteGoalWeight();
-
-            String todayIso = Utils.isoUtc(new Date());
-            SettingsStore settings = SettingsStore.get(this);
-            settings.setLastCongratsDate(todayIso);
         });
     }
 

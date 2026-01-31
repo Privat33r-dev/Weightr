@@ -5,6 +5,7 @@ import static com.snhu.weightr.util.Utils.approximatelyEqual;
 import android.content.Context;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -16,6 +17,7 @@ import com.snhu.weightr.data.db.entity.DailyWeightEntity;
 import com.snhu.weightr.data.repo.DailyWeightRepository;
 import com.snhu.weightr.data.repo.GoalWeightRepository;
 import com.snhu.weightr.data.session.SessionStore;
+import com.snhu.weightr.data.settings.SettingsStore;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -25,6 +27,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
 
 public class MainViewModel extends ViewModel {
 
@@ -43,7 +46,20 @@ public class MainViewModel extends ViewModel {
 
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 
-    private final MutableLiveData<List<DailyWeightEntity>> history = new MutableLiveData<>();
+    private final MutableLiveData<List<DailyWeightEntity>> rawHistory = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> sortDescending = new MutableLiveData<>(true);
+    private final LiveData<List<DailyWeightEntity>> sortedHistory = Transformations.switchMap(sortDescending, desc ->
+            Transformations.map(rawHistory, list -> {
+                if (desc) {
+                    // We get pre-sorted (DESC) values from the DB; no need for sorting
+                    return list;
+                } else {
+                    List<DailyWeightEntity> copy = new ArrayList<>(list);
+                    sortByDate(copy, desc);
+                    return copy;
+                }
+            })
+    );
     private final MutableLiveData<Double> currentWeight = new MutableLiveData<>();
     private final MutableLiveData<Double> previousWeight = new MutableLiveData<>();
     private final MutableLiveData<Double> goalWeight = new MutableLiveData<>();
@@ -72,6 +88,9 @@ public class MainViewModel extends ViewModel {
 
         weightRepository = new DailyWeightRepository(WeightrDb.get(appCtx).dailyWeightDao());
         goalWeightRepository = new GoalWeightRepository(WeightrDb.get(appCtx).goalWeightDao());
+
+        // Load initial sort preference
+        sortDescending.setValue(SettingsStore.get(appCtx).isSortDescending());
 
         refreshData();
     }
@@ -173,23 +192,36 @@ public class MainViewModel extends ViewModel {
         return motivationText;
     }
 
-    public LiveData<String> getUserName() {
-        return userName;
+    public LiveData<List<DailyWeightEntity>> getHistory() {
+        return sortedHistory;
     }
 
-    public LiveData<List<DailyWeightEntity>> getHistory() {
-        return history;
+    public void setSortDescending(boolean descending) {
+        sortDescending.setValue(descending);
+    }
+
+    public void deleteWeight(@NonNull DailyWeightEntity item) {
+        if (weightRepository == null) {
+            Log.e(TAG, "deleteWeight: no weightRepository");
+            return;
+        }
+        weightRepository.deleteWeight(item, () -> {
+            List<DailyWeightEntity> currentRaw = rawHistory.getValue();
+            if (currentRaw != null) {
+                List<DailyWeightEntity> updatedRaw = new ArrayList<>(currentRaw);
+                updatedRaw.remove(item);
+                rawHistory.postValue(updatedRaw);
+            }
+        });
     }
 
     public void loadHistory() {
         Long userIdValue = userId.getValue();
         if (weightRepository == null || userIdValue == null) {
-            history.setValue(java.util.Collections.emptyList());
+            rawHistory.setValue(java.util.Collections.emptyList());
             return;
         }
-        weightRepository.listWeightsForUser(userIdValue, list ->
-                history.postValue(new java.util.ArrayList<>(list))
-        );
+        weightRepository.listWeightsForUser(userIdValue, rawHistory::postValue);
     }
 
 
@@ -242,4 +274,52 @@ public class MainViewModel extends ViewModel {
         return "Good direction. Small steps add up.";
     }
 
+
+    /**
+     * Sort the list by date in-place using a Quicksort algorithm.
+     * Original Quicksort algorithm was published by Tony Hoare in 1961.
+     *
+     * @param list       The list to sort.
+     * @param descending True for newest first (descending order), false for oldest first (ascending order).
+     */
+    private static void sortByDate(List<DailyWeightEntity> list, boolean descending) {
+        if (list == null || list.size() <= 1) return;
+        quickSort(list, 0, list.size() - 1, descending);
+    }
+
+    private static void quickSort(List<DailyWeightEntity> list, int low, int high, boolean descending) {
+        if (low >= high) return;
+        int pivotIndex = partition(list, low, high, descending);
+        quickSort(list, low, pivotIndex - 1, descending);
+        quickSort(list, pivotIndex + 1, high, descending);
+    }
+
+    private static int partition(List<DailyWeightEntity> list, int low, int high, boolean descending) {
+        // Randomized pivot to avoid worst-case scenarios
+        Random rand = new Random();
+        int pivotIndex = low + rand.nextInt(high - low + 1);
+        swap(list, pivotIndex, high);
+
+        String pivotDate = list.get(high).date;
+
+        int i = low - 1;
+        for (int j = low; j < high; j++) {
+            String currentDate = list.get(j).date;
+            int cmp = currentDate.compareTo(pivotDate);
+            if (descending) cmp = -cmp;
+            if (cmp < 0) {
+                i++;
+                swap(list, i, j);
+            }
+        }
+
+        swap(list, i + 1, high);
+        return i + 1;
+    }
+
+    private static void swap(List<DailyWeightEntity> list, int i, int j) {
+        DailyWeightEntity temp = list.get(i);
+        list.set(i, list.get(j));
+        list.set(j, temp);
+    }
 }
