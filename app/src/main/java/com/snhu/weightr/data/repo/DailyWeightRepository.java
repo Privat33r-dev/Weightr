@@ -1,11 +1,14 @@
 package com.snhu.weightr.data.repo;
 
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 
 import com.snhu.weightr.data.db.dao.DailyWeightDao;
 import com.snhu.weightr.data.db.entity.DailyWeightEntity;
+import com.snhu.weightr.data.db.security.CypherUtility;
 import com.snhu.weightr.data.repo.util.DbExecutor;
 
 import java.util.List;
@@ -15,16 +18,19 @@ import java.util.List;
  * Thin layer over DailyWeightDao for weight logging and retrieval.
  */
 public final class DailyWeightRepository {
+    private final String TAG = "DailyWeightRepository";
 
     private final DailyWeightDao weightDao;
+    private final CypherUtility cypherUtility;
 
     /**
      * Constructs a repository with the provided DAO.
      *
      * @param weightDao DAO for accessing daily weight data
      */
-    public DailyWeightRepository(@NonNull DailyWeightDao weightDao) {
+    public DailyWeightRepository(@NonNull DailyWeightDao weightDao, CypherUtility cypherUtility) {
         this.weightDao = weightDao;
+        this.cypherUtility = cypherUtility;
     }
 
     /**
@@ -53,6 +59,7 @@ public final class DailyWeightRepository {
                 DailyWeightEntity e = new DailyWeightEntity();
                 e.userId = userId;
                 e.weight = weight;
+                e.encryptedWeight = encryptWeight(weight);
                 e.date = date;
                 weightDao.insert(e); // will fail if entry exists
                 if (onSuccess != null) onSuccess.run();
@@ -89,6 +96,7 @@ public final class DailyWeightRepository {
             DailyWeightEntity entry = weightDao.getById(id);
             if (entry != null) {
                 entry.weight = newWeight;
+                entry.encryptedWeight = encryptWeight(newWeight);
                 entry.date = newDate;
                 weightDao.upsert(entry);
                 if (callback != null) callback.run();
@@ -99,11 +107,18 @@ public final class DailyWeightRepository {
     /**
      * Deletes specified weight entries.
      *
-     * @param weights   Weight entries to delete
+     * @param weights Weight entries to delete
      */
     public void deleteWeights(@NonNull DailyWeightEntity... weights) {
-        DbExecutor.get().execute(() -> {
-            weightDao.deleteWeights(weights);
-        });
+        DbExecutor.get().execute(() -> weightDao.deleteWeights(weights));
+    }
+
+    private String encryptWeight(Double weight) {
+        try {
+            return cypherUtility.encrypt(String.valueOf(weight));
+        } catch (Exception e) {
+            Log.e(TAG, "encryptWeight: run into error during encryption", e);
+        }
+        return "";
     }
 }

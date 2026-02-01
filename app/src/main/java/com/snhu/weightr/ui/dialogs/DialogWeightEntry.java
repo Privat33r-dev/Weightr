@@ -17,9 +17,6 @@ import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.DateValidatorPointBackward;
 import com.snhu.weightr.R;
-import com.snhu.weightr.data.db.WeightrDb;
-import com.snhu.weightr.data.repo.DailyWeightRepository;
-import com.snhu.weightr.data.session.SessionStore;
 import com.snhu.weightr.databinding.DialogWeightEntryBinding;
 import com.snhu.weightr.ui.viewmodel.MainViewModel;
 
@@ -40,11 +37,9 @@ public final class DialogWeightEntry extends DialogFragment {
 
     private DialogWeightEntryBinding binding;
     private MainViewModel viewModel;
-    private DailyWeightRepository dailyWeightRepository;
 
     private boolean isEdit = false;
     private long editId = -1L;
-    private long userIdArg = -1L;          // optional, if passed
     private String originalDateIso = null; // for editing
     private String selectedDateIso;        // yyyy-MM-dd
 
@@ -56,8 +51,6 @@ public final class DialogWeightEntry extends DialogFragment {
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
         binding = DialogWeightEntryBinding.inflate(getLayoutInflater());
         viewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
-
-        dailyWeightRepository = new DailyWeightRepository(WeightrDb.get(requireContext()).dailyWeightDao());
 
         parseArgs(getArguments());
 
@@ -77,7 +70,6 @@ public final class DialogWeightEntry extends DialogFragment {
         if (args != null && args.containsKey(ARG_USER_ID) && args.containsKey(ARG_WEIGHT) && args.containsKey(ARG_DATE)) {
             isEdit = true;
             editId = args.getLong(ARG_ID, -1L);
-            userIdArg = args.getLong(ARG_USER_ID, -1L);
             double w = args.getDouble(ARG_WEIGHT, 0d);
             originalDateIso = args.getString(ARG_DATE);
             selectedDateIso = originalDateIso != null ? originalDateIso : isoUtc(new Date());
@@ -88,7 +80,6 @@ public final class DialogWeightEntry extends DialogFragment {
         } else {
             isEdit = false;
             editId = -1L;
-            userIdArg = -1L;
             originalDateIso = null;
             selectedDateIso = isoUtc(new Date());
         }
@@ -108,27 +99,18 @@ public final class DialogWeightEntry extends DialogFragment {
             binding.weightLayout.setError(null);
             double newWeight = Double.parseDouble(s);
 
-            // Resolve userId: prefer argument if provided; otherwise from ViewModel/Session
-            Long uidLive = viewModel.getUserId() != null ? viewModel.getUserId().getValue() : null;
-            long uid = (userIdArg > 0) ? userIdArg : (uidLive != null ? uidLive : -1L);
-            if (uid <= 0) {
-                SessionStore.get(requireContext()).clear();
-                Toast.makeText(requireContext(), R.string.error_no_user, Toast.LENGTH_SHORT).show();
-                return;
-            }
-
             if (!isEdit) {
-                create(uid, newWeight, selectedDateIso);
+                create(newWeight, selectedDateIso);
             } else {
-                edit(uid, newWeight, selectedDateIso);
+                edit(newWeight, selectedDateIso);
             }
         });
 
         binding.cancelButton.setOnClickListener(v -> dismiss());
     }
 
-    private void create(long uid, double weight, String dateIso) {
-        dailyWeightRepository.logWeight(uid, weight, dateIso,
+    private void create(double weight, String dateIso) {
+        viewModel.logNewWeight(weight, dateIso,
                 () -> requireActivity().runOnUiThread(() -> {
                     Toast.makeText(requireContext(), R.string.weight_saved, Toast.LENGTH_SHORT).show();
                     dismiss();
@@ -140,8 +122,8 @@ public final class DialogWeightEntry extends DialogFragment {
                 }));
     }
 
-    private void edit(long uid, double weight, String dateIso) {
-        dailyWeightRepository.updateWeightById(editId, weight, dateIso,
+    private void edit(double weight, String dateIso) {
+        viewModel.updateExistingWeight(editId, weight, dateIso,
                 () -> requireActivity().runOnUiThread(() -> {
                     Toast.makeText(requireContext(), R.string.weight_saved, Toast.LENGTH_SHORT).show();
                     dismiss();

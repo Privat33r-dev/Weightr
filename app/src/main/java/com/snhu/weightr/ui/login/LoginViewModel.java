@@ -24,7 +24,7 @@ public final class LoginViewModel extends ViewModel {
         return loginFormState;
     }
 
-    public LiveData<LoginResult> getLoginResult() {
+    LiveData<LoginResult> getLoginResult() {
         return loginResult;
     }
 
@@ -35,7 +35,7 @@ public final class LoginViewModel extends ViewModel {
         userRepository.authenticate(username, password, (user) -> {
             if (user != null) {
                 // Successful login
-                loginResult.postValue(new LoginResult(new LoggedInUser(user.id, user.username)));
+                loginResult.postValue(new LoginResult(new LoggedInUser(user.id, user.username, password)));
             } else {
                 loginResult.postValue(new LoginResult(R.string.login_failed));
             }
@@ -48,7 +48,7 @@ public final class LoginViewModel extends ViewModel {
     public void register(String username, String password) {
         userRepository.createUser(username, password, (userId) -> {
             try {
-                loginResult.postValue(new LoginResult(new LoggedInUser(userId, username)));
+                loginResult.postValue(new LoginResult(new LoggedInUser(userId, username, password)));
             } catch (Exception e) {
                 loginResult.postValue(new LoginResult(R.string.register_failed));
             }

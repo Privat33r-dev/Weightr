@@ -16,6 +16,7 @@ import androidx.lifecycle.ViewModel;
 import com.snhu.weightr.data.db.WeightrDb;
 import com.snhu.weightr.data.db.entity.DailyWeightEntity;
 import com.snhu.weightr.data.db.entity.GoalWeightEntity;
+import com.snhu.weightr.data.db.security.CypherUtility;
 import com.snhu.weightr.data.repo.DailyWeightRepository;
 import com.snhu.weightr.data.repo.GoalWeightRepository;
 import com.snhu.weightr.data.session.SessionStore;
@@ -30,6 +31,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
+
+import javax.crypto.SecretKey;
 
 public class MainViewModel extends ViewModel {
 
@@ -74,14 +77,27 @@ public class MainViewModel extends ViewModel {
     @Nullable
     private GoalWeightRepository goalWeightRepository;
 
+    @Nullable
+    private CypherUtility cypherUtility;
+
     public void init(Context context) {
         if (weightRepository != null || goalWeightRepository != null) return;
 
         Context appCtx = context.getApplicationContext();
+
+        // Load encryption key from SessionStore
+        SecretKey encryptionKey = SessionStore.get(appCtx).encryptionKey();
+        if (encryptionKey == null) {
+            throw new IllegalStateException("No encryption key.");
+        }
+
+        // Setup encryption key
+        cypherUtility = new CypherUtility(encryptionKey);
+
         userId.setValue(SessionStore.get(appCtx).userId());
         userName.setValue(SessionStore.get(appCtx).username());
 
-        weightRepository = new DailyWeightRepository(WeightrDb.get(appCtx).dailyWeightDao());
+        weightRepository = new DailyWeightRepository(WeightrDb.get(appCtx).dailyWeightDao(), cypherUtility);
         goalWeightRepository = new GoalWeightRepository(WeightrDb.get(appCtx).goalWeightDao());
 
         // Load initial sort preference
@@ -89,7 +105,10 @@ public class MainViewModel extends ViewModel {
 
         Long uid = userId.getValue();
         if (uid != null && uid > 0) {
-            rawHistoryLive = weightRepository.getHistoryLive(uid);
+            rawHistoryLive = Transformations.map(weightRepository.getHistoryLive(uid), list -> {
+                decryptList(list);
+                return list;
+            });
             goalEntityLive = goalWeightRepository.getGoalWeightLive(uid);
         } else {
             rawHistoryLive = new MutableLiveData<>(Collections.emptyList());
@@ -104,7 +123,7 @@ public class MainViewModel extends ViewModel {
                         return list; // Raw DESC from DB
                     } else {
                         List<DailyWeightEntity> copy = new ArrayList<>(list);
-                        sortByDate(copy, desc);
+                        sortByDate(copy, false);
                         return copy;
                     }
                 })
@@ -219,6 +238,40 @@ public class MainViewModel extends ViewModel {
         sortDescending.setValue(descending);
     }
 
+    /**
+     * Logs a new weight entry with callbacks.
+     *
+     * @param weight    Weight value to log
+     * @param dateIso   Date of the entry in ISO 8601 format
+     * @param onSuccess Optional callback on success
+     * @param onError   Optional callback on error
+     */
+    public void logNewWeight(double weight, @NonNull String dateIso,
+                             @Nullable Runnable onSuccess, @Nullable DailyWeightRepository.ErrorCallback onError) {
+        Long uid = userId.getValue();
+        if (uid == null || uid < 0 || weightRepository == null) {
+            if (onError != null) onError.onError(new IllegalStateException("Invalid user state"));
+            return;
+        }
+
+        weightRepository.logWeight(uid, weight, dateIso, onSuccess, onError);
+    }
+
+    /**
+     * Updates an existing weight entry with callbacks.
+     *
+     * @param entryId    ID of the weight entry to update
+     * @param newWeight  Updated weight value
+     * @param newDateIso Updated date value
+     * @param onSuccess  Optional callback for completion
+     */
+    public void updateExistingWeight(long entryId, double newWeight, @NonNull String newDateIso,
+                                     @Nullable Runnable onSuccess) {
+        if (weightRepository == null) return;
+
+        weightRepository.updateWeightById(entryId, newWeight, newDateIso, onSuccess);
+    }
+
     public void deleteWeight(@NonNull DailyWeightEntity item) {
         if (weightRepository == null) {
             Log.e(TAG, "deleteWeight: no weightRepository");
@@ -292,5 +345,23 @@ public class MainViewModel extends ViewModel {
         DailyWeightEntity temp = list.get(i);
         list.set(i, list.get(j));
         list.set(j, temp);
+    }
+
+
+    private void decryptList(List<DailyWeightEntity> list) {
+        if (list == null || cypherUtility == null) {
+            Log.e(TAG, "decryptList: invalid state; list or cypherUtility is empty");
+            return;
+        }
+
+        for (DailyWeightEntity e : list) {
+            try {
+                String decrypted = cypherUtility.decrypt(e.encryptedWeight);
+                e.weight = Double.parseDouble(decrypted);
+            } catch (Exception ex) {
+                e.weight = 0.0;
+                Log.e(TAG, "Failed to decrypt weight for entry id=" + e.id, ex);
+            }
+        }
     }
 }

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "ae515c638be2f30006f2c4bb03a97327",
+    "identityHash": "1f0658136fbff3c522f6b3d78b645995",
     "entities": [
       {
         "tableName": "users",
@@ -107,7 +107,7 @@
       },
       {
         "tableName": "daily_weights",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `user_id` INTEGER NOT NULL, `weight` REAL NOT NULL, `date` TEXT NOT NULL, FOREIGN KEY(`user_id`) REFERENCES `users`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `user_id` INTEGER NOT NULL, `weight_enc` TEXT NOT NULL, `date` TEXT NOT NULL, FOREIGN KEY(`user_id`) REFERENCES `users`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -122,9 +122,9 @@
             "notNull": true
           },
           {
-            "fieldPath": "weight",
-            "columnName": "weight",
-            "affinity": "REAL",
+            "fieldPath": "encryptedWeight",
+            "columnName": "weight_enc",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
@@ -178,7 +178,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ae515c638be2f30006f2c4bb03a97327')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1f0658136fbff3c522f6b3d78b645995')"
     ]
   }
 }

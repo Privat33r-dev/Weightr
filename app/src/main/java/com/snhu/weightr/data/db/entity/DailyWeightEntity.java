@@ -27,7 +27,13 @@ public final class DailyWeightEntity {
     @ColumnInfo(name = "user_id")
     public long userId;
 
-    public double weight;
+    // Not existing in DB, should be set in repository; makes work with entity easier
+    public transient double weight;
+
+    // Weight record in encrypted form that is actually stored in DB
+    @NonNull
+    @ColumnInfo(name = "weight_enc")
+    public String encryptedWeight = "";
 
     /**
      * ISO-8601 calendar date (YYYY-MM-DD).

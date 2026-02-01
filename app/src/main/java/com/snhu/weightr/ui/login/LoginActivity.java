@@ -202,7 +202,7 @@ public final class LoginActivity extends AppCompatActivity {
         LoggedInUser user = tmp.getSuccess();
         if (user == null) throw new IllegalStateException("Authorized, but unable to fetch user");
 
-        SessionStore.get(this).save(user.getUserId(), user.getUserName());
+        SessionStore.get(this).save(user.getUserId(), user.getUserName(), user.getEncryptionKey());
         sendToMainActivity();
     }
 
