@@ -13,12 +13,21 @@ class LoginResult {
     @Nullable
     private Integer error;
 
+    private final String errorMessage;
+
     LoginResult(@Nullable Integer error) {
         this.error = error;
+        this.errorMessage = null;
     }
 
     LoginResult(@Nullable LoggedInUser success) {
         this.success = success;
+        this.errorMessage = null;
+    }
+
+    public LoginResult(String errorMessage) {
+        this.success = null;
+        this.errorMessage = errorMessage;
     }
 
     @Nullable
@@ -29,5 +38,9 @@ class LoginResult {
     @Nullable
     Integer getError() {
         return error;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
     }
 }

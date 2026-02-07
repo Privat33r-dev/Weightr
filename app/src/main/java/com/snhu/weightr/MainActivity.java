@@ -19,6 +19,8 @@ import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.snhu.weightr.data.session.SessionStore;
 import com.snhu.weightr.databinding.ActivityMainBinding;
 import com.snhu.weightr.ui.dialogs.DialogGoalEntry;
@@ -34,21 +36,27 @@ public final class MainActivity extends AppCompatActivity {
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
 
+    private FirebaseAuth mAuth;
+    private FirebaseAuth.AuthStateListener authStateListener;
+    FirebaseUser currentUser;
+
     private MainViewModel viewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        mAuth = FirebaseAuth.getInstance();
+
+        authStateListener = firebaseAuth -> {
+            currentUser = firebaseAuth.getCurrentUser();
+            if (currentUser == null) {
+                sendToLogin();
+            }
+        };
+
         viewModel = new ViewModelProvider(this).get(MainViewModel.class);
         viewModel.init(this);
-
-        Long userId = viewModel.getUserId() != null ? viewModel.getUserId().getValue() : null;
-        if (userId == null || userId <= 0) {
-            startActivity(new Intent(this, LoginActivity.class));
-            finish();
-            return;
-        }
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -104,12 +112,9 @@ public final class MainActivity extends AppCompatActivity {
                     showGoalWeightDialog();
                     return true;
                 } else if (id == R.id.action_logout) {
-                    // Clear session and return to login
+                    // Clear session
                     SessionStore.get(getBaseContext()).reset();
-                    Intent i = new Intent(getBaseContext(), LoginActivity.class);
-                    i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(i);
-                    finish();
+                    mAuth.signOut();
                     return true;
                 }
 
@@ -174,6 +179,25 @@ public final class MainActivity extends AppCompatActivity {
                 activity.getString(R.string.app_name),
                 body
         );
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        mAuth.addAuthStateListener(authStateListener);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        mAuth.removeAuthStateListener(authStateListener);
+    }
+
+    private void sendToLogin() {
+        Intent i = new Intent(getBaseContext(), LoginActivity.class);
+        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(i);
+        finish();
     }
 
 

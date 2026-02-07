@@ -33,12 +33,11 @@ public final class PasswordHasher {
      * @return PHC-formatted hash string
      */
     public static String hash(final char[] password) {
-        final byte[] salt = new byte[SALT_LEN_BYTES];
-        new SecureRandom().nextBytes(salt);
+        final byte[] pepper = "Weightr.App.Password.Salt".getBytes();
 
-        final byte[] dk = derive(password, salt, ITERATIONS, KEY_LEN_BITS);
+        final byte[] dk = derive(password, pepper, ITERATIONS, KEY_LEN_BITS);
 
-        return "$pbkdf2-sha512" + "$v=" + ITERATIONS + "$salt=" + Base64.encodeToString(salt, Base64.NO_WRAP) + "$hash=" + Base64.encodeToString(dk, Base64.NO_WRAP);
+        return "$pbkdf2-sha512" + "$v=" + ITERATIONS + "$salt=" + Base64.encodeToString(pepper, Base64.NO_WRAP) + "$hash=" + Base64.encodeToString(dk, Base64.NO_WRAP);
     }
 
     /**
