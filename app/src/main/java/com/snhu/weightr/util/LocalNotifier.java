@@ -18,12 +18,10 @@ public final class LocalNotifier {
     private static final String CH_ID = "alerts";
 
     public static void ensureChannel(@NonNull Context ctx) {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            NotificationChannel ch = new NotificationChannel(CH_ID, "Alerts",
-                    NotificationManager.IMPORTANCE_DEFAULT);
-            NotificationManager nm = ctx.getSystemService(NotificationManager.class);
-            nm.createNotificationChannel(ch);
-        }
+        NotificationChannel ch = new NotificationChannel(CH_ID, "Alerts",
+                NotificationManager.IMPORTANCE_DEFAULT);
+        NotificationManager nm = ctx.getSystemService(NotificationManager.class);
+        nm.createNotificationChannel(ch);
     }
 
     public static void notify(@NonNull Context ctx, int id, @NonNull String title, @NonNull String text) {

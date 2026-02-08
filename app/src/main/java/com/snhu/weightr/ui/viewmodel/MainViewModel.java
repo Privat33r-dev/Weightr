@@ -13,9 +13,10 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
 import androidx.lifecycle.ViewModel;
 
-import com.snhu.weightr.data.db.WeightrDb;
-import com.snhu.weightr.data.db.entity.DailyWeightEntity;
-import com.snhu.weightr.data.db.entity.GoalWeightEntity;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.snhu.weightr.data.db.entity.DailyWeight;
+import com.snhu.weightr.data.db.entity.GoalWeight;
 import com.snhu.weightr.data.db.security.CypherUtility;
 import com.snhu.weightr.data.repo.DailyWeightRepository;
 import com.snhu.weightr.data.repo.GoalWeightRepository;
@@ -30,7 +31,6 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Random;
 
 import javax.crypto.SecretKey;
 
@@ -51,24 +51,20 @@ public class MainViewModel extends ViewModel {
 
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 
-    private LiveData<List<DailyWeightEntity>> rawHistoryLive; // DESC from DB
-    private LiveData<GoalWeightEntity> goalEntityLive;
+    private LiveData<List<DailyWeight>> rawHistoryLive;
+    private LiveData<GoalWeight> goalEntityLive;
 
     private final MutableLiveData<Boolean> sortDescending = new MutableLiveData<>(true);
 
-    private LiveData<List<DailyWeightEntity>> sortedHistory;
+    private LiveData<List<DailyWeight>> sortedHistory;
 
     private LiveData<Double> currentWeight;
-
-    // Derived from goalEntityLive
     private LiveData<Double> goalWeight;
     private LiveData<Double> goalStartWeight;
 
-    // Mediator is needed for consistent updates (analogous to observer)
     private final MediatorLiveData<String> motivationText = new MediatorLiveData<>();
 
-    private final MutableLiveData<Long> userId = new MutableLiveData<>(-2L);
-    private final MutableLiveData<String> userName = new MutableLiveData<>("");
+    private final MutableLiveData<String> uid = new MutableLiveData<>("");
 
     private static final String TAG = MainViewModel.class.getName();
 
@@ -77,75 +73,55 @@ public class MainViewModel extends ViewModel {
     @Nullable
     private GoalWeightRepository goalWeightRepository;
 
-    @Nullable
-    private CypherUtility cypherUtility;
-
     public void init(Context context) {
         if (weightRepository != null || goalWeightRepository != null) return;
 
         Context appCtx = context.getApplicationContext();
 
-        // Load encryption key from SessionStore
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            throw new IllegalStateException("User not authenticated");
+        }
+        String firebaseUid = currentUser.getUid();
+
         SecretKey encryptionKey = SessionStore.get(appCtx).encryptionKey();
         if (encryptionKey == null) {
-            throw new IllegalStateException("No encryption key.");
+            throw new IllegalStateException("No encryption key");
         }
 
-        // Setup encryption key
-        cypherUtility = new CypherUtility(encryptionKey);
+        CypherUtility cypherUtility = new CypherUtility(encryptionKey);
 
-        userId.setValue(SessionStore.get(appCtx).userId());
-        userName.setValue(SessionStore.get(appCtx).username());
+        uid.setValue(firebaseUid);
 
-        weightRepository = new DailyWeightRepository(WeightrDb.get(appCtx).dailyWeightDao(), cypherUtility);
-        goalWeightRepository = new GoalWeightRepository(WeightrDb.get(appCtx).goalWeightDao());
+        weightRepository = new DailyWeightRepository(firebaseUid, cypherUtility);
+        goalWeightRepository = new GoalWeightRepository(firebaseUid, cypherUtility);
 
-        // Load initial sort preference
         sortDescending.setValue(SettingsStore.get(appCtx).isSortDescending());
 
-        Long uid = userId.getValue();
-        if (uid != null && uid > 0) {
-            rawHistoryLive = Transformations.map(weightRepository.getHistoryLive(uid), list -> {
-                decryptList(list);
-                return list;
-            });
-            goalEntityLive = goalWeightRepository.getGoalWeightLive(uid);
-        } else {
-            rawHistoryLive = new MutableLiveData<>(Collections.emptyList());
-            goalEntityLive = new MutableLiveData<>(null);
-        }
+        rawHistoryLive = weightRepository.getHistoryLive(); // already decrypted inside repo LiveData
 
-        // Create derived LiveData after sources are set
+        goalEntityLive = goalWeightRepository.getGoalWeightLive();
+
         sortedHistory = Transformations.switchMap(sortDescending, desc ->
                 Transformations.map(rawHistoryLive, list -> {
                     if (list == null) return Collections.emptyList();
-                    if (desc) {
-                        return list; // Raw DESC from DB
-                    } else {
-                        List<DailyWeightEntity> copy = new ArrayList<>(list);
-                        sortByDate(copy, false);
-                        return copy;
-                    }
-                })
-        );
+                    if (desc) return list;
+                    // The list is presorted in DESC, so we can just reverse to get ASC sorting
+                    List<DailyWeight> copy = new ArrayList<>(list);
+                    Collections.reverse(copy);
+                    return copy;
+                }));
 
-        currentWeight = Transformations.map(rawHistoryLive, list ->
-                list.isEmpty() ? null : list.get(0).weight
-        );
+        currentWeight = Transformations.map(rawHistoryLive, list -> list.isEmpty() ? null : list.get(0).weight);
 
-        goalWeight = Transformations.map(goalEntityLive, entity ->
-                entity != null ? entity.currentGoal : null
-        );
-
-        goalStartWeight = Transformations.map(goalEntityLive, entity ->
-                entity != null ? entity.goalStart : null
-        );
+        goalWeight = Transformations.map(goalEntityLive, entity -> entity != null ? entity.currentGoal : null);
+        goalStartWeight = Transformations.map(goalEntityLive, entity -> entity != null ? entity.goalStart : null);
 
         motivationText.addSource(rawHistoryLive, historyList -> updateMotivation(historyList, goalEntityLive.getValue()));
         motivationText.addSource(goalEntityLive, goalEntity -> updateMotivation(rawHistoryLive.getValue(), goalEntity));
     }
 
-    private void updateMotivation(List<DailyWeightEntity> historyList, GoalWeightEntity goalEntity) {
+    private void updateMotivation(List<DailyWeight> historyList, GoalWeight goalEntity) {
         if (historyList == null || historyList.size() < 2 || goalEntity == null || goalEntity.currentGoal <= 0) {
             motivationText.setValue("");
             return;
@@ -189,25 +165,24 @@ public class MainViewModel extends ViewModel {
         return "Good direction. Small steps add up.";
     }
 
+
     public void setGoalWeight(double goal) {
         double goalStart = currentWeight.getValue() != null ? currentWeight.getValue() : -1.0;
-        Long uid = userId.getValue();
-        if (goalWeightRepository == null || uid == null || approximatelyEqual(goalStart, -1.0)) {
+        if (goalWeightRepository == null || approximatelyEqual(goalStart, -1.0)) {
             Log.e(TAG, "setGoalWeight: invalid state");
             return;
         }
 
-        goalWeightRepository.setGoal(uid, goal, goalStart);
+        goalWeightRepository.setGoal(goal, goalStart);
     }
 
     public void deleteGoalWeight() {
-        Long uid = userId.getValue();
-        if (goalWeightRepository == null || uid == null) {
+        if (goalWeightRepository == null) {
             Log.e(TAG, "deleteGoalWeight: invalid state");
             return;
         }
 
-        goalWeightRepository.deleteGoal(uid);
+        goalWeightRepository.deleteGoal();
     }
 
     public LiveData<Double> getCurrentWeight() {
@@ -222,15 +197,11 @@ public class MainViewModel extends ViewModel {
         return goalStartWeight;
     }
 
-    public LiveData<Long> getUserId() {
-        return userId;
-    }
-
     public LiveData<String> getMotivationText() {
         return motivationText;
     }
 
-    public LiveData<List<DailyWeightEntity>> getHistory() {
+    public LiveData<List<DailyWeight>> getHistory() {
         return sortedHistory;
     }
 
@@ -246,37 +217,38 @@ public class MainViewModel extends ViewModel {
      * @param onSuccess Optional callback on success
      * @param onError   Optional callback on error
      */
-    public void logNewWeight(double weight, @NonNull String dateIso,
-                             @Nullable Runnable onSuccess, @Nullable DailyWeightRepository.ErrorCallback onError) {
-        Long uid = userId.getValue();
-        if (uid == null || uid < 0 || weightRepository == null) {
-            if (onError != null) onError.onError(new IllegalStateException("Invalid user state"));
+    public void logNewWeight(double weight, @NonNull String dateIso, @Nullable Runnable onSuccess,
+                             @Nullable DailyWeightRepository.ErrorCallback onError) {
+        if (weightRepository == null) {
+            if (onError != null)
+                onError.onError(new IllegalStateException("Repository not initialized"));
             return;
         }
-
-        weightRepository.logWeight(uid, weight, dateIso, onSuccess, onError);
+        weightRepository.logWeight(weight, dateIso, onSuccess, onError);
     }
+
 
     /**
      * Updates an existing weight entry with callbacks.
      *
-     * @param entryId    ID of the weight entry to update
+     * @param oldDate    Original date to identify entry to edit
      * @param newWeight  Updated weight value
      * @param newDateIso Updated date value
      * @param onSuccess  Optional callback for completion
      */
-    public void updateExistingWeight(long entryId, double newWeight, @NonNull String newDateIso,
-                                     @Nullable Runnable onSuccess) {
+    public void updateExistingWeight(@NonNull String oldDate, double newWeight,
+                                     @NonNull String newDateIso, @Nullable Runnable onSuccess) {
         if (weightRepository == null) return;
-
-        weightRepository.updateWeightById(entryId, newWeight, newDateIso, onSuccess);
+        weightRepository.updateWeight(oldDate, newWeight, newDateIso, onSuccess, null);
     }
 
-    public void deleteWeight(@NonNull DailyWeightEntity item) {
-        if (weightRepository == null) {
-            Log.e(TAG, "deleteWeight: no weightRepository");
-            return;
-        }
+    /**
+     * Deletes a weight entry.
+     *
+     * @param item Weight entry to delete
+     */
+    public void deleteWeight(@NonNull DailyWeight item) {
+        if (weightRepository == null) return;
         weightRepository.deleteWeights(item);
     }
 
@@ -285,7 +257,7 @@ public class MainViewModel extends ViewModel {
         return Transformations.map(rawHistoryLive, history -> {
             if (history == null) return Collections.emptyList();
             List<WeightChartPoint> out = new ArrayList<>(history.size());
-            for (DailyWeightEntity e : history) {
+            for (DailyWeight e : history) {
                 try {
                     Date d = sdf.parse(e.date);
                     if (d == null) continue;
@@ -299,69 +271,4 @@ public class MainViewModel extends ViewModel {
         });
     }
 
-    /**
-     * Sort the list by date in-place using a Quicksort algorithm.
-     * Original Quicksort algorithm was published by Tony Hoare in 1961.
-     *
-     * @param list       The list to sort.
-     * @param descending True for newest first (descending order), false for oldest first (ascending order).
-     */
-    private static void sortByDate(List<DailyWeightEntity> list, boolean descending) {
-        if (list == null || list.size() <= 1) return;
-        quickSort(list, 0, list.size() - 1, descending);
-    }
-
-    private static void quickSort(List<DailyWeightEntity> list, int low, int high, boolean descending) {
-        if (low >= high) return;
-        int pivotIndex = partition(list, low, high, descending);
-        quickSort(list, low, pivotIndex - 1, descending);
-        quickSort(list, pivotIndex + 1, high, descending);
-    }
-
-    private static int partition(List<DailyWeightEntity> list, int low, int high, boolean descending) {
-        // Randomized pivot to avoid worst-case scenarios
-        Random rand = new Random();
-        int pivotIndex = low + rand.nextInt(high - low + 1);
-        swap(list, pivotIndex, high);
-
-        String pivotDate = list.get(high).date;
-
-        int i = low - 1;
-        for (int j = low; j < high; j++) {
-            String currentDate = list.get(j).date;
-            int cmp = currentDate.compareTo(pivotDate);
-            if (descending) cmp = -cmp;
-            if (cmp < 0) {
-                i++;
-                swap(list, i, j);
-            }
-        }
-
-        swap(list, i + 1, high);
-        return i + 1;
-    }
-
-    private static void swap(List<DailyWeightEntity> list, int i, int j) {
-        DailyWeightEntity temp = list.get(i);
-        list.set(i, list.get(j));
-        list.set(j, temp);
-    }
-
-
-    private void decryptList(List<DailyWeightEntity> list) {
-        if (list == null || cypherUtility == null) {
-            Log.e(TAG, "decryptList: invalid state; list or cypherUtility is empty");
-            return;
-        }
-
-        for (DailyWeightEntity e : list) {
-            try {
-                String decrypted = cypherUtility.decrypt(e.encryptedWeight);
-                e.weight = Double.parseDouble(decrypted);
-            } catch (Exception ex) {
-                e.weight = 0.0;
-                Log.e(TAG, "Failed to decrypt weight for entry id=" + e.id, ex);
-            }
-        }
-    }
 }

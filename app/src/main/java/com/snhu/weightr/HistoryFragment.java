@@ -8,7 +8,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -22,8 +21,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.snhu.weightr.data.db.entity.DailyWeightEntity;
-import com.snhu.weightr.data.session.SessionStore;
+import com.snhu.weightr.data.db.entity.DailyWeight;
 import com.snhu.weightr.data.settings.SettingsStore;
 import com.snhu.weightr.ui.dialogs.DialogWeightEntry;
 import com.snhu.weightr.ui.viewmodel.MainViewModel;
@@ -38,7 +36,6 @@ public final class HistoryFragment extends Fragment {
     private RecyclerView recyclerView;
     private HistoryAdapter adapter;
     private MainViewModel viewModel;
-    private Long userId;
     private boolean sortDescending;
 
     @Nullable
@@ -91,14 +88,6 @@ public final class HistoryFragment extends Fragment {
         adapter = new HistoryAdapter(this::onDelete, this::onEdit);
         recyclerView.setAdapter(adapter);
 
-        long uid = SessionStore.get(requireContext()).userId();
-        userId = (uid > 0) ? uid : null;
-
-        if (userId == null) {
-            Toast.makeText(requireContext(), R.string.error_no_user, Toast.LENGTH_SHORT).show();
-            return;
-        }
-
         // set dynamic updates
         viewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
         viewModel.getHistory().observe(getViewLifecycleOwner(), list -> adapter.submitList(list));
@@ -110,24 +99,24 @@ public final class HistoryFragment extends Fragment {
         addMenu();
     }
 
-    private void onDelete(@NonNull DailyWeightEntity item) {
+    private void onDelete(@NonNull DailyWeight item) {
         viewModel.deleteWeight(item);
     }
 
-    private void onEdit(@NonNull DailyWeightEntity item) {
-        DialogWeightEntry dialog = DialogWeightEntry.newEdit(item.id, item.userId, item.weight, item.date);
+    private void onEdit(@NonNull DailyWeight item) {
+        DialogWeightEntry dialog = DialogWeightEntry.newEdit(item.weight, item.date);
         dialog.show(getParentFragmentManager(), "WeightEntryDialog");
     }
 
     private static final class HistoryAdapter
-            extends ListAdapter<DailyWeightEntity, HistoryAdapter.VH> {
+            extends ListAdapter<DailyWeight, HistoryAdapter.VH> {
 
         interface OnDeleteClick {
-            void onDelete(DailyWeightEntity item);
+            void onDelete(DailyWeight item);
         }
 
         interface OnEditClick {
-            void onEdit(DailyWeightEntity item);
+            void onEdit(DailyWeight item);
         }
 
         private final OnDeleteClick onDelete;
@@ -149,24 +138,23 @@ public final class HistoryFragment extends Fragment {
 
         @Override
         public void onBindViewHolder(@NonNull VH h, int position) {
-            DailyWeightEntity item = getItem(position);
+            DailyWeight item = getItem(position);
             h.bind(item, onDelete, onEdit);
         }
 
-        static final DiffUtil.ItemCallback<DailyWeightEntity> DIFF =
+        static final DiffUtil.ItemCallback<DailyWeight> DIFF =
                 new DiffUtil.ItemCallback<>() {
                     @Override
-                    public boolean areItemsTheSame(@NonNull DailyWeightEntity a,
-                                                   @NonNull DailyWeightEntity b) {
-                        return Objects.equals(a.id, b.id);
+                    public boolean areItemsTheSame(@NonNull DailyWeight a,
+                                                   @NonNull DailyWeight b) {
+                        return Objects.equals(a, b);
                     }
 
                     @Override
-                    public boolean areContentsTheSame(@NonNull DailyWeightEntity a,
-                                                      @NonNull DailyWeightEntity b) {
+                    public boolean areContentsTheSame(@NonNull DailyWeight a,
+                                                      @NonNull DailyWeight b) {
                         return Utils.approximatelyEqual(a.weight, b.weight)
-                                && Objects.equals(a.date, b.date)
-                                && Objects.equals(a.userId, b.userId);
+                                && Objects.equals(a.date, b.date);
                     }
                 };
 
@@ -185,7 +173,7 @@ public final class HistoryFragment extends Fragment {
                 deleteBtn = itemView.findViewById(R.id.delete_btn);
             }
 
-            void bind(@NonNull DailyWeightEntity item,
+            void bind(@NonNull DailyWeight item,
                       @NonNull OnDeleteClick onDelete,
                       @NonNull OnEditClick onEdit) {
                 dateTv.setText(item.date);

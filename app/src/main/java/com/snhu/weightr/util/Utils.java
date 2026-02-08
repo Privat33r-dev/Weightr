@@ -1,17 +1,11 @@
 package com.snhu.weightr.util;
 
-import android.Manifest;
-import android.content.Context;
-import android.content.pm.PackageManager;
-import android.os.Build;
 import android.text.Editable;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -42,21 +36,6 @@ public final class Utils {
         SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
         f.setTimeZone(TimeZone.getTimeZone("UTC"));
         return f.format(d);
-    }
-
-    public static boolean hasNotificationsPermissions(@NonNull Context context) {
-        ArrayList<String> perms = new ArrayList<>();
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            perms.add(Manifest.permission.POST_NOTIFICATIONS);
-        }
-
-        for (String p : perms) {
-            if (ContextCompat.checkSelfPermission(context, p) != PackageManager.PERMISSION_GRANTED) {
-                return false;
-            }
-        }
-        return true;
     }
 
     public static boolean approximatelyEqual(double a, double b) {

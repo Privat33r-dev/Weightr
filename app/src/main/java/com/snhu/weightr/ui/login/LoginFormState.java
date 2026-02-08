@@ -27,15 +27,6 @@ public final class LoginFormState {
         this.isDataValid = (usernameError == null && passwordError == null);
     }
 
-    /**
-     * Valid state.
-     */
-    public LoginFormState(boolean isDataValid) {
-        this.usernameError = null;
-        this.passwordError = null;
-        this.isDataValid = isDataValid;
-    }
-
     @Nullable
     public Integer getUsernameError() {
         return usernameError;

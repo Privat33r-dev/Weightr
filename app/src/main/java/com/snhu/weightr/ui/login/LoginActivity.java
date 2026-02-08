@@ -41,7 +41,7 @@ public final class LoginActivity extends AppCompatActivity {
 
         FirebaseAuth auth = FirebaseAuth.getInstance();
         FirebaseUser currentUser = auth.getCurrentUser();
-        if (currentUser != null && checkSessionExists()) {
+        if (currentUser != null) {
             sendToMainActivity();
             return;
         }
@@ -214,7 +214,7 @@ public final class LoginActivity extends AppCompatActivity {
 
     private void onAuthSuccess(LoggedInUser user) {
         Toast.makeText(this, R.string.welcome, Toast.LENGTH_SHORT).show();
-        SessionStore.get(this).save(user.getUserId(), user.getUserName(), user.getEncryptionKey());
+        SessionStore.get(this).save(user.getEncryptionKey());
         sendToMainActivity();
     }
 
@@ -232,10 +232,6 @@ public final class LoginActivity extends AppCompatActivity {
                 ? errorMessage
                 : (errorRes != null ? getString(errorRes) : getString(R.string.login_failed));
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
-    }
-
-    private boolean checkSessionExists() {
-        return SessionStore.get(this).userId() >= 0;
     }
 
     private void sendToMainActivity() {

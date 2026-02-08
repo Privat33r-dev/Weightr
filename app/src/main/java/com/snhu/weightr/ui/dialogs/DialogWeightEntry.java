@@ -16,35 +16,30 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.DateValidatorPointBackward;
+import com.google.android.material.datepicker.MaterialDatePicker;
 import com.snhu.weightr.R;
 import com.snhu.weightr.databinding.DialogWeightEntryBinding;
 import com.snhu.weightr.ui.viewmodel.MainViewModel;
+import com.snhu.weightr.util.Utils;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
-import com.google.android.material.datepicker.MaterialDatePicker;
-import com.snhu.weightr.util.Utils;
-
 public final class DialogWeightEntry extends DialogFragment {
 
-    private static final String ARG_ID = "id";
-    private static final String ARG_USER_ID = "user_id";
-    private static final String ARG_WEIGHT = "weight";
-    private static final String ARG_DATE = "date";
+    private static final String ARG_WEIGHT = "weight";   // For edit: new weight
+    private static final String ARG_DATE = "date";       // For edit: original date
 
     private DialogWeightEntryBinding binding;
     private MainViewModel viewModel;
 
     private boolean isEdit = false;
-    private long editId = -1L;
-    private String originalDateIso = null; // for editing
-    private String selectedDateIso;        // yyyy-MM-dd
+    private String originalDateIso = null;
+    private String selectedDateIso;
 
     private static final String TAG = DialogWeightEntry.class.getName();
-
 
     @NonNull
     @Override
@@ -66,20 +61,17 @@ public final class DialogWeightEntry extends DialogFragment {
     }
 
     private void parseArgs(@Nullable Bundle args) {
-        // If all these are present -> edit mode
-        if (args != null && args.containsKey(ARG_USER_ID) && args.containsKey(ARG_WEIGHT) && args.containsKey(ARG_DATE)) {
+        if (args != null && args.containsKey(ARG_DATE)) {
             isEdit = true;
-            editId = args.getLong(ARG_ID, -1L);
-            double w = args.getDouble(ARG_WEIGHT, 0d);
             originalDateIso = args.getString(ARG_DATE);
+            double w = args.getDouble(ARG_WEIGHT, 0d);
             selectedDateIso = originalDateIso != null ? originalDateIso : isoUtc(new Date());
-            // Pre-fill weight field if > 0
+
             if (w > 0 && binding != null) {
                 binding.weightInput.setText(String.valueOf(w));
             }
         } else {
             isEdit = false;
-            editId = -1L;
             originalDateIso = null;
             selectedDateIso = isoUtc(new Date());
         }
@@ -123,7 +115,7 @@ public final class DialogWeightEntry extends DialogFragment {
     }
 
     private void edit(double weight, String dateIso) {
-        viewModel.updateExistingWeight(editId, weight, dateIso,
+        viewModel.updateExistingWeight(originalDateIso, weight, dateIso,
                 () -> requireActivity().runOnUiThread(() -> {
                     Toast.makeText(requireContext(), R.string.weight_saved, Toast.LENGTH_SHORT).show();
                     dismiss();
@@ -158,7 +150,6 @@ public final class DialogWeightEntry extends DialogFragment {
         }
     }
 
-
     private static long parseIsoToUtcMillis(String iso) {
         try {
             SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
@@ -171,13 +162,11 @@ public final class DialogWeightEntry extends DialogFragment {
         }
     }
 
-    public static DialogWeightEntry newEdit(long entryId, long userId, double weight, @NonNull String dateIso) {
+    public static DialogWeightEntry newEdit(double currentWeight, @NonNull String originalDateIso) {
         DialogWeightEntry d = new DialogWeightEntry();
         Bundle b = new Bundle();
-        b.putLong(ARG_ID, entryId);
-        b.putLong(ARG_USER_ID, userId);
-        b.putDouble(ARG_WEIGHT, weight);
-        b.putString(ARG_DATE, dateIso);
+        b.putDouble(ARG_WEIGHT, currentWeight);
+        b.putString(ARG_DATE, originalDateIso);
         d.setArguments(b);
         return d;
     }

@@ -11,23 +11,10 @@ import javax.crypto.SecretKey;
  */
 public class LoggedInUser {
 
-    private final Long userId;
-    private final String userName;
     private final String password;
 
-    public LoggedInUser(Long userId, String userName, String password) {
-        this.userId = userId;
-        this.userName = userName;
+    public LoggedInUser(String password) {
         this.password = password;
-    }
-
-    @NotNull
-    public Long getUserId() {
-        return userId;
-    }
-
-    public String getUserName() {
-        return userName;
     }
 
     public SecretKey getEncryptionKey() throws IllegalStateException {

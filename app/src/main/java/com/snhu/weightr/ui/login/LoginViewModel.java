@@ -17,7 +17,6 @@ public final class LoginViewModel extends ViewModel {
     private final MutableLiveData<LoginResult> loginResult = new MutableLiveData<>();
 
     private final FirebaseAuth mAuth;
-    private final int MIN_PASS_LENGTH = 8;
     private Integer currentUsernameError = null;
     private Integer currentPasswordError = null;
 
@@ -39,7 +38,7 @@ public final class LoginViewModel extends ViewModel {
                     if (task.isSuccessful()) {
                         FirebaseUser firebaseUser = mAuth.getCurrentUser();
                         if (firebaseUser != null) {
-                            onAuthSuccess(firebaseUser, password);
+                            onAuthSuccess(password);
                         } else {
                             loginResult.postValue(new LoginResult(R.string.login_failed));
                         }
@@ -60,7 +59,7 @@ public final class LoginViewModel extends ViewModel {
                     if (task.isSuccessful()) {
                         FirebaseUser firebaseUser = mAuth.getCurrentUser();
                         if (firebaseUser != null) {
-                            onAuthSuccess(firebaseUser, password);
+                            onAuthSuccess(password);
                         } else {
                             loginResult.postValue(new LoginResult(R.string.login_failed));
                         }
@@ -70,12 +69,8 @@ public final class LoginViewModel extends ViewModel {
                 });
     }
 
-    private void onAuthSuccess(FirebaseUser firebaseUser, String password) {
-        String uid = firebaseUser.getUid();
-        long legacyUserId = (long) uid.hashCode();
-        String displayName = firebaseUser.getEmail();
-
-        LoggedInUser user = new LoggedInUser(legacyUserId, displayName, password);
+    private void onAuthSuccess(String password) {
+        LoggedInUser user = new LoggedInUser(password);
         loginResult.postValue(new LoginResult(user));
     }
 
@@ -95,6 +90,7 @@ public final class LoginViewModel extends ViewModel {
     }
 
     public void passwordChanged(String password) {
+        final int MIN_PASS_LENGTH = 8;
         if (password != null && !password.isEmpty() && password.length() < MIN_PASS_LENGTH) {
             currentPasswordError = R.string.error_invalid_password;
         } else {

@@ -2,9 +2,6 @@ package com.snhu.weightr.data.db.security;
 
 import android.util.Base64;
 
-import java.security.MessageDigest;
-import java.security.SecureRandom;
-
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
@@ -40,36 +37,6 @@ public final class PasswordHasher {
         return "$pbkdf2-sha512" + "$v=" + ITERATIONS + "$salt=" + Base64.encodeToString(pepper, Base64.NO_WRAP) + "$hash=" + Base64.encodeToString(dk, Base64.NO_WRAP);
     }
 
-    /**
-     * Verify password against stored PBKDF2 hash.
-     *
-     * @param password Raw password as char[]
-     * @param stored   Stored PHC hash string
-     * @return true if password matches
-     */
-    public static boolean verify(final char[] password, final String stored) {
-        if (stored == null || !stored.startsWith("$pbkdf2-sha512")) {
-            return false;
-        }
-
-        try {
-            final String[] parts = stored.split("\\$");
-            // Expected: ["", "pbkdf2-sha512", "v=ITER", "salt=BASE64", "hash=BASE64"]
-
-            final int iterations = safeParseInt(parts[2].substring(2), -1);
-            if (iterations <= 0) return false;
-
-            final byte[] salt = Base64.decode(parts[3].substring(5), Base64.NO_WRAP);
-            final byte[] expectedHash = Base64.decode(parts[4].substring(5), Base64.NO_WRAP);
-
-            final byte[] actualHash = derive(password, salt, iterations, expectedHash.length * 8);
-
-            return MessageDigest.isEqual(expectedHash, actualHash);
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
     // ---- internals ----
 
     private static byte[] derive(char[] password, byte[] salt, int iterations, int keyLenBits) {
@@ -79,14 +46,6 @@ public final class PasswordHasher {
             return skf.generateSecret(spec).getEncoded();
         } catch (Exception e) {
             throw new RuntimeException("PBKDF2 derivation failed", e);
-        }
-    }
-
-    private static int safeParseInt(String s, int defaultValue) {
-        try {
-            return Integer.parseInt(s);
-        } catch (Exception e) {
-            return defaultValue;
         }
     }
 

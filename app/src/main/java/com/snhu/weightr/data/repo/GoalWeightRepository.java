@@ -1,63 +1,141 @@
 package com.snhu.weightr.data.repo;
 
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 
-import com.snhu.weightr.data.db.dao.GoalWeightDao;
-import com.snhu.weightr.data.db.entity.GoalWeightEntity;
-import com.snhu.weightr.data.repo.util.DbExecutor;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.snhu.weightr.data.db.entity.GoalWeight;
+import com.snhu.weightr.data.db.security.CypherUtility;
 
-/**
- * Manages goal weight data operations.
- * Thin layer over GoalWeightDao for goal weight storage and retrieval.
- */
+import java.util.HashMap;
+import java.util.Map;
+
 public final class GoalWeightRepository {
 
-    private final GoalWeightDao goalWeightDao;
+    private static final String TAG = "GoalWeightRepository";
 
-    public GoalWeightRepository(@NonNull GoalWeightDao goalWeightDao) {
-        this.goalWeightDao = goalWeightDao;
+    private final DocumentReference goalDocRef;
+    private final CypherUtility cypherUtility;
+
+    public GoalWeightRepository(@NonNull String uid, @NonNull CypherUtility cypherUtility) {
+        this.goalDocRef = FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(uid)
+                .collection("settings")
+                .document("goal");
+        this.cypherUtility = cypherUtility;
+    }
+
+    public void setGoal(double currentGoal, double goalStart) {
+        String encCurrent = encrypt(currentGoal);
+        String encStart = encrypt(goalStart);
+
+        if (encCurrent.isEmpty() || encStart.isEmpty()) {
+            Log.e(TAG, "Encryption failed for goal weight");
+            return;
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("encryptedCurrentGoal", encCurrent);
+        data.put("encryptedGoalStart", encStart);
+
+        goalDocRef.set(data)
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to set encrypted goal", e));
+    }
+
+    public void deleteGoal() {
+        goalDocRef.delete()
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to delete goal", e));
+    }
+
+    public LiveData<GoalWeight> getGoalWeightLive() {
+        return new GoalLiveData(goalDocRef, cypherUtility);
+    }
+
+    private String encrypt(double value) {
+        try {
+            return cypherUtility.encrypt(String.valueOf(value));
+        } catch (Exception e) {
+            Log.e(TAG, "Encryption failed", e);
+            return "";
+        }
     }
 
     /**
-     * Sets the goal weight for a user.
-     *
-     * @param userId      ID of the user
-     * @param currentGoal new goal of the user
-     * @param goalStart   new start of the goal of the user
+     * Internal LiveData wrapper for real-time Goal data with decryption
      */
-    public void setGoal(@NonNull Long userId, double currentGoal, double goalStart) {
-        DbExecutor.get().execute(() -> {
-            GoalWeightEntity existing = goalWeightDao.getForUser(userId);
-            if (existing == null) {
-                existing = new GoalWeightEntity();
-                existing.userId = userId;
+    private static class GoalLiveData extends LiveData<GoalWeight> {
+        private ListenerRegistration registration;
+        private final DocumentReference docRef;
+        private final CypherUtility cypherUtility;
+
+        GoalLiveData(DocumentReference docRef, CypherUtility cypherUtility) {
+            this.docRef = docRef;
+            this.cypherUtility = cypherUtility;
+            setValue(null);
+        }
+
+        @Override
+        protected void onActive() {
+            super.onActive();
+
+            docRef.get().addOnSuccessListener(this::processSnapshot).addOnFailureListener(e -> {
+                Log.e(TAG, "Initial goal fetch failed", e);
+                setValue(null);
+            });
+
+            // Attach real-time listener
+            registration = docRef.addSnapshotListener((snapshot, error) -> {
+                if (error != null) {
+                    Log.e(TAG, "Goal listen error", error);
+                    setValue(null);
+                    return;
+                }
+                processSnapshot(snapshot);
+            });
+        }
+
+        private void processSnapshot(@Nullable DocumentSnapshot snapshot) {
+            if (snapshot == null || !snapshot.exists()) {
+                setValue(null);
+                return;
             }
-            existing.currentGoal = currentGoal;
-            existing.goalStart = goalStart;
-            goalWeightDao.upsert(existing);
-        });
-    }
 
-    /**
-     * Deletes the goal weight for a user.
-     *
-     * @param userId   ID of the user
-     */
-    public void deleteGoal(@NonNull Long userId) {
-        DbExecutor.get().execute(() -> {
-            goalWeightDao.deleteForUser(userId);
-        });
-    }
+            String encCurrent = snapshot.getString("encryptedCurrentGoal");
+            String encStart = snapshot.getString("encryptedGoalStart");
 
-    /**
-     * Returns a LiveData of the goal weight entity for a specified user.
-     *
-     * @param userId ID of the user
-     * @return LiveData containing the current GoalWeightEntity (or null if none)
-     */
-    public LiveData<GoalWeightEntity> getGoalWeightLive(@NonNull Long userId) {
-        return goalWeightDao.getForUserLive(userId);
+            if (encCurrent == null || encStart == null) {
+                Log.w(TAG, "Missing encrypted fields – emitting null");
+                setValue(null);
+                return;
+            }
+
+            GoalWeight entity = new GoalWeight();
+
+            try {
+                entity.currentGoal = Double.parseDouble(cypherUtility.decrypt(encCurrent));
+                entity.goalStart = Double.parseDouble(cypherUtility.decrypt(encStart));
+                setValue(entity);
+            } catch (Exception ex) {
+                Log.e(TAG, "Decryption failed – emitting null", ex);
+                setValue(null);
+            }
+        }
+
+        @Override
+        protected void onInactive() {
+            super.onInactive();
+            Log.d(TAG, "GoalLiveData onInactive – removing listener");
+            if (registration != null) {
+                registration.remove();
+                registration = null;
+            }
+        }
     }
 }

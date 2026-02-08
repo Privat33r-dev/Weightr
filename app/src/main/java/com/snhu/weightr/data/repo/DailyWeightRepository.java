@@ -6,119 +6,216 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 
-import com.snhu.weightr.data.db.dao.DailyWeightDao;
-import com.snhu.weightr.data.db.entity.DailyWeightEntity;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldPath;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.Transaction;
+import com.snhu.weightr.data.db.entity.DailyWeight;
 import com.snhu.weightr.data.db.security.CypherUtility;
-import com.snhu.weightr.data.repo.util.DbExecutor;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-/**
- * Manages weight data operations.
- * Thin layer over DailyWeightDao for weight logging and retrieval.
- */
 public final class DailyWeightRepository {
-    private final String TAG = "DailyWeightRepository";
+    private static final String TAG = "DailyWeightRepository";
 
-    private final DailyWeightDao weightDao;
+    private final CollectionReference weightsRef;
     private final CypherUtility cypherUtility;
 
-    /**
-     * Constructs a repository with the provided DAO.
-     *
-     * @param weightDao DAO for accessing daily weight data
-     */
-    public DailyWeightRepository(@NonNull DailyWeightDao weightDao, CypherUtility cypherUtility) {
-        this.weightDao = weightDao;
+    public DailyWeightRepository(@NonNull String uid, @NonNull CypherUtility cypherUtility) {
+        this.weightsRef = FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(uid)
+                .collection("daily_weights");
         this.cypherUtility = cypherUtility;
     }
 
-    /**
-     * Callback interface for handling errors during database operations.
-     */
     public interface ErrorCallback {
         void onError(Exception e);
     }
 
     /**
-     * Logs a new weight entry for a user.
+     * Full history (DESC by date) with decrypted weights
+     */
+    public LiveData<List<DailyWeight>> getHistoryLive() {
+        return new FirestoreHistoryLiveData(weightsRef.orderBy(FieldPath.documentId(), Query.Direction.DESCENDING), cypherUtility);
+    }
+
+
+    /**
+     * Logs a new weight entry; fail if entry exists.
      *
-     * @param userId    ID of the user
      * @param weight    Weight value to log
      * @param date      Date of the entry in ISO 8601 format
      * @param onSuccess Optional callback on success (default: no-op)
      * @param onError   Optional callback on error (default: no-op)
      */
-    public void logWeight(@NonNull Long userId,
-                          double weight,
+    public void logWeight(double weight,
                           @NonNull String date,
                           @Nullable Runnable onSuccess,
                           @Nullable ErrorCallback onError) {
-        DbExecutor.get().execute(() -> {
-            try {
-                DailyWeightEntity e = new DailyWeightEntity();
-                e.userId = userId;
-                e.weight = weight;
-                e.encryptedWeight = encryptWeight(weight);
-                e.date = date;
-                weightDao.insert(e); // will fail if entry exists
+        String encrypted = encryptWeight(weight);
+        if (encrypted.isEmpty()) {
+            if (onError != null) onError.onError(new Exception("Encryption failed"));
+            return;
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("encryptedWeight", encrypted);
+
+        weightsRef.document(date).get().addOnCompleteListener(task -> {
+            if (!task.isSuccessful()) {
+                if (onError != null) onError.onError(task.getException());
+                return;
+            }
+            DocumentSnapshot snap = task.getResult();
+            if (snap != null && snap.exists()) {
+                if (onError != null) {
+                    onError.onError(new IllegalArgumentException("Entry with this date already exists"));
+                }
+                return;
+            }
+            weightsRef.document(date).set(data)
+                    .addOnSuccessListener(aVoid -> {
+                        if (onSuccess != null) onSuccess.run();
+                    })
+                    .addOnFailureListener(e -> {
+                        if (onError != null) onError.onError(e);
+                    });
+        });
+    }
+
+    /**
+     * Update an entry; supports changing the date (atomic transaction)
+     */
+    public void updateWeight(@NonNull String oldDate,
+                             double newWeight,
+                             @NonNull String newDate,
+                             @Nullable Runnable onSuccess,
+                             @Nullable ErrorCallback onError) {
+        String encrypted = encryptWeight(newWeight);
+        if (encrypted.isEmpty()) {
+            if (onError != null) onError.onError(new Exception("Encryption failed"));
+            return;
+        }
+
+        Map<String, Object> data = Collections.singletonMap("encryptedWeight", encrypted);
+
+        if (oldDate.equals(newDate)) {
+            // Simple overwrite
+            weightsRef.document(newDate).set(data, SetOptions.merge())
+                    .addOnSuccessListener(aVoid -> {
+                        if (onSuccess != null) onSuccess.run();
+                    })
+                    .addOnFailureListener(e -> {
+                        if (onError != null) onError.onError(e);
+                    });
+        } else {
+            // Transaction: delete old + check/create new
+            FirebaseFirestore.getInstance().runTransaction((Transaction.Function<Void>) transaction -> {
+                transaction.delete(weightsRef.document(oldDate));
+
+                DocumentSnapshot newSnap = transaction.get(weightsRef.document(newDate));
+                if (newSnap.exists()) {
+                    throw new FirebaseFirestoreException("Target date already exists",
+                            FirebaseFirestoreException.Code.ALREADY_EXISTS);
+                }
+
+                transaction.set(weightsRef.document(newDate), data);
+                return null;
+            }).addOnSuccessListener(unused -> {
                 if (onSuccess != null) onSuccess.run();
-            } catch (android.database.sqlite.SQLiteConstraintException err) {
-                if (onError != null) onError.onError(
-                        new IllegalArgumentException("Entry with this date already exists", err)
-                );
-            } catch (Exception ex) {
-                if (onError != null) onError.onError(ex);
-            }
-        });
+            }).addOnFailureListener(e -> {
+                if (onError != null) onError.onError(e);
+            });
+        }
     }
 
     /**
-     * Returns a LiveData of all weight entries for a user, sorted by date descending.
-     *
-     * @param userId ID of the user
-     * @return LiveData containing the current list (may be empty)
+     * Delete one or more entries (by date from entity)
      */
-    public LiveData<List<DailyWeightEntity>> getHistoryLive(@NonNull Long userId) {
-        return weightDao.listForUser(userId);
+    public void deleteWeights(@NonNull DailyWeight... weights) {
+        for (DailyWeight w : weights) {
+            weightsRef.document(w.date).delete().addOnFailureListener(e ->
+                    Log.e(TAG, "Failed to delete entry for date " + w.date, e));
+        }
     }
 
-    /**
-     * Updates the weight value for a specific entry.
-     *
-     * @param id        ID of the weight entry to update
-     * @param newWeight Updated weight value
-     * @param newDate   Updated date value
-     * @param callback  Optional callback for completion (default: no-op)
-     */
-    public void updateWeightById(@NonNull Long id, double newWeight, String newDate, @Nullable Runnable callback) {
-        DbExecutor.get().execute(() -> {
-            DailyWeightEntity entry = weightDao.getById(id);
-            if (entry != null) {
-                entry.weight = newWeight;
-                entry.encryptedWeight = encryptWeight(newWeight);
-                entry.date = newDate;
-                weightDao.upsert(entry);
-                if (callback != null) callback.run();
-            }
-        });
-    }
-
-    /**
-     * Deletes specified weight entries.
-     *
-     * @param weights Weight entries to delete
-     */
-    public void deleteWeights(@NonNull DailyWeightEntity... weights) {
-        DbExecutor.get().execute(() -> weightDao.deleteWeights(weights));
-    }
-
-    private String encryptWeight(Double weight) {
+    private String encryptWeight(double weight) {
         try {
             return cypherUtility.encrypt(String.valueOf(weight));
         } catch (Exception e) {
-            Log.e(TAG, "encryptWeight: run into error during encryption", e);
+            Log.e(TAG, "Encryption failed", e);
+            return "";
         }
-        return "";
+    }
+
+    /**
+     * Internal LiveData wrapper for real-time history with decryption
+     */
+    private static class FirestoreHistoryLiveData extends LiveData<List<DailyWeight>> {
+        private ListenerRegistration registration;
+        private final Query query;
+        private final CypherUtility cypherUtility;
+
+        FirestoreHistoryLiveData(Query query, CypherUtility cypherUtility) {
+            this.query = query;
+            this.cypherUtility = cypherUtility;
+        }
+
+        @Override
+        protected void onActive() {
+            super.onActive();
+            registration = query.addSnapshotListener((snapshots, error) -> {
+                if (error != null) {
+                    Log.e(TAG, "Firestore listen failed", error);
+                    setValue(Collections.emptyList());
+                    return;
+                }
+                if (snapshots == null) {
+                    setValue(Collections.emptyList());
+                    return;
+                }
+
+                List<DailyWeight> list = new ArrayList<>(snapshots.size());
+                for (DocumentSnapshot doc : snapshots.getDocuments()) {
+                    String enc = doc.getString("encryptedWeight");
+                    String date = doc.getId();
+                    if (enc == null || date.isEmpty()) continue;
+
+                    DailyWeight entity = new DailyWeight();
+                    entity.date = date;
+                    entity.encryptedWeight = enc;
+
+                    try {
+                        String decrypted = cypherUtility.decrypt(enc);
+                        entity.weight = Double.parseDouble(decrypted);
+                    } catch (Exception ex) {
+                        entity.weight = 0.0;
+                        Log.e(TAG, "Decryption failed for date " + date, ex);
+                    }
+
+                    list.add(entity);
+                }
+                setValue(list);
+            });
+        }
+
+        @Override
+        protected void onInactive() {
+            super.onInactive();
+            if (registration != null) {
+                registration.remove();
+                registration = null;
+            }
+        }
     }
 }

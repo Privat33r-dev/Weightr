@@ -2,31 +2,49 @@ package com.snhu.weightr.data.session;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyProperties;
 import android.util.Base64;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.security.KeyStore;
+
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.spec.GCMParameterSpec;
 
 /**
- * Stores user session (user id and username) and derived encryption key via SharedPreferences.
- * NOTE: Encryption key is stored in plain text for now (quick implementation).
- * Security will be improved later with EncryptedSharedPreferences/Keystore.
+ * Securely persists the derived encryption key using Android Keystore-backed encryption.
+ * - Keystore generates/protects a master AES key (hardware-backed where possible).
+ * - Derived key is encrypted with it and stored in plain SharedPreferences.
+ * <p>
+ * This approach allows us to avoid storing key in plaintext in files,
+ * protecting from file extraction attacks via ADB.
+ * </p>
  */
 public final class SessionStore {
-    private static final String PREF = "session";
-    private static final String KEY_UID = "uid";
-    private static final String KEY_UNAME = "uname";
-    private static final String KEY_CRYPTO = "crypto_key"; // Base64-encoded AES secret key bytes
-    private static final String SECRET_KEY_ALGO = "AES";
+    private static final String PREF = "session_secure";
+    private static final String KEY_ENCRYPTED_CRYPTO = "encrypted_crypto_key";
+    private static final String KEYSTORE_ALIAS = "weightr_master_key";
+    private static final String ANDROID_KEYSTORE = "AndroidKeyStore";
+    private static final String TAG = "SessionStore";
 
     private static volatile SessionStore INSTANCE;
     private final SharedPreferences prefs;
+    private final KeyStore keyStore;
 
     private SessionStore(Context appCtx) {
         this.prefs = appCtx.getSharedPreferences(PREF, Context.MODE_PRIVATE);
+        try {
+            keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
+            keyStore.load(null);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to init Keystore", e);
+        }
     }
 
     public static SessionStore get(Context ctx) {
@@ -37,40 +55,82 @@ public final class SessionStore {
         return INSTANCE;
     }
 
-    public void save(long userId, String username, @NonNull SecretKey encryptionKey) {
-        String encodedKey = Base64.encodeToString(encryptionKey.getEncoded(), Base64.NO_WRAP);
-        prefs.edit()
-                .putLong(KEY_UID, userId)
-                .putString(KEY_UNAME, username)
-                .putString(KEY_CRYPTO, encodedKey)
-                .apply();
+    /** Save derived encryption key (encrypted with Keystore master key) */
+    public void save(@NonNull SecretKey derivedKey) {
+        try {
+            SecretKey masterKey = getOrCreateMasterKey();
+            Cipher cipher = Cipher.getInstance(KeyProperties.KEY_ALGORITHM_AES + "/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, masterKey);
+
+            byte[] encrypted = cipher.doFinal(derivedKey.getEncoded());
+            byte[] iv = cipher.getIV();
+
+            // Store IV + encrypted data concatenated (Base64)
+            byte[] combined = new byte[iv.length + encrypted.length];
+            System.arraycopy(iv, 0, combined, 0, iv.length);
+            System.arraycopy(encrypted, 0, combined, iv.length, encrypted.length);
+
+            String encoded = Base64.encodeToString(combined, Base64.NO_WRAP);
+            prefs.edit().putString(KEY_ENCRYPTED_CRYPTO, encoded).apply();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to save encrypted key", e);
+        }
     }
 
     public void reset() {
-        prefs.edit()
-                .putLong(KEY_UID, -1L)
-                .remove(KEY_UNAME)
-                .remove(KEY_CRYPTO)
-                .apply();
-    }
-
-    public long userId() {
-        return prefs.getLong(KEY_UID, -1L);
-    }
-
-    public String username() {
-        return prefs.getString(KEY_UNAME, null);
+        prefs.edit().remove(KEY_ENCRYPTED_CRYPTO).apply();
     }
 
     @Nullable
     public SecretKey encryptionKey() {
-        String encoded = prefs.getString(KEY_CRYPTO, null);
+        String encoded = prefs.getString(KEY_ENCRYPTED_CRYPTO, null);
         if (encoded == null) return null;
-        byte[] keyBytes = Base64.decode(encoded, Base64.NO_WRAP);
-        return new SecretKeySpec(keyBytes, SECRET_KEY_ALGO);
+
+        try {
+            byte[] combined = Base64.decode(encoded, Base64.NO_WRAP);
+            if (combined.length < 12 + 16) return null; // Min IV (12) + ciphertext
+
+            byte[] iv = new byte[12];
+            byte[] encrypted = new byte[combined.length - 12];
+            System.arraycopy(combined, 0, iv, 0, 12);
+            System.arraycopy(combined, 12, encrypted, 0, encrypted.length);
+
+            SecretKey masterKey = getMasterKey(); // Must exist
+            if (masterKey == null) return null;
+
+            Cipher cipher = Cipher.getInstance(KeyProperties.KEY_ALGORITHM_AES + "/GCM/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE, masterKey, new GCMParameterSpec(128, iv));
+
+            byte[] decoded = cipher.doFinal(encrypted);
+            return new javax.crypto.spec.SecretKeySpec(decoded, "AES");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to load/decrypt key", e);
+            return null;
+        }
     }
 
-    public void clear() {
-        prefs.edit().clear().apply();
+    private SecretKey getOrCreateMasterKey() throws Exception {
+        if (keyStore.containsAlias(KEYSTORE_ALIAS)) {
+            KeyStore.SecretKeyEntry entry = (KeyStore.SecretKeyEntry) keyStore.getEntry(KEYSTORE_ALIAS, null);
+            return entry.getSecretKey();
+        }
+
+        KeyGenerator kg = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE);
+        KeyGenParameterSpec spec = new KeyGenParameterSpec.Builder(KEYSTORE_ALIAS,
+                KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .setKeySize(256)
+                .setRandomizedEncryptionRequired(true)
+                .build();
+        kg.init(spec);
+        return kg.generateKey();
+    }
+
+    @Nullable
+    private SecretKey getMasterKey() throws Exception {
+        if (!keyStore.containsAlias(KEYSTORE_ALIAS)) return null;
+        KeyStore.SecretKeyEntry entry = (KeyStore.SecretKeyEntry) keyStore.getEntry(KEYSTORE_ALIAS, null);
+        return entry.getSecretKey();
     }
 }

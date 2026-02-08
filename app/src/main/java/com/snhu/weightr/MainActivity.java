@@ -158,8 +158,8 @@ public final class MainActivity extends AppCompatActivity {
             Double goal = viewModel.getGoalWeight().getValue();
             if (start == null || goal == null) return;
 
-            boolean goingDown = goal < start;                // losing vs gaining
-            boolean reached = goingDown ? (w <= goal)      // reached in the correct direction
+            boolean goingDown = goal < start;          // losing vs gaining
+            boolean reached = goingDown ? (w <= goal)  // reached in the correct direction
                     : (w >= goal);
             if (!reached) return;
 
